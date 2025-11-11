@@ -13,7 +13,7 @@ wandb:
   
   
 PATH:
-  PROJECT_PATH: /p/home/jusers/dipippo1/jureca/projects/test_scConcept
+  PROJECT_PATH: /p/home/jusers/dipippo1/jureca/projects/scConcept-1
   PROJECT_DATA_PATH: /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw
   CHECKPOINT_ROOT: ${PATH.PROJECT_PATH}/model_checkpoints
   DATASET_PATH: ${PATH.PROJECT_DATA_PATH}
