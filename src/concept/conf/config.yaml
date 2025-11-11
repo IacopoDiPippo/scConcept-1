@@ -7,7 +7,7 @@ defaults:
 wandb:
   enabled: True
   run_id: null
-  run_name: ???
+  run_name: debug_run
   entity: transformer
   project: contrastive-transformer
   
