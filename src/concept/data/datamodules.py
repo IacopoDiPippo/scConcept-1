@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List
 import anndata as ad
-
+import numpy as np
 import lightning as L
 import torch
 import torch.distributed as dist
@@ -57,7 +57,19 @@ class MappedCollectionDataModule(L.LightningDataModule):
 
             path_list = [os.path.join(dataset_path, file) for file in train_files]
             print("✅ Training files:", path_list)
-            adata_list = [ad.read_h5ad(p) for p in path_list] 
+            # limit number of cells for debugging
+            N_DEBUG = 1000  # or any small number
+
+            adata_list = []
+            for p in path_list:
+                print(f"📂 Loading subset from {p} ...")
+                adata_backed = ad.read_h5ad(p, backed='r')       # open read-only
+                # choose random subset of cells
+                idx = np.random.choice(adata_backed.n_obs, min(N_DEBUG, adata_backed.n_obs), replace=False)
+                # load only that subset into memory
+                adata_small = adata_backed[idx, :].to_memory()
+                adata_list.append(adata_small)
+                print(f"✅ Loaded {adata_small.n_obs} cells × {adata_small.n_vars} genes from {p}")
             within_group_sampling = dataloader_kwargs['train']['within_group_sampling']
             keys_to_cache = [within_group_sampling] if within_group_sampling else []
             self.train_collate_fn = self._get_collate_fn(dataset_kwargs['train'], split_input=True)
@@ -71,6 +83,32 @@ class MappedCollectionDataModule(L.LightningDataModule):
             self.train_dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['train']})
         if 'val' in split and split['val'] is not None and 'val' in dataset_kwargs:
             self.val_datasets = {}
+
+            # Ensure val split is always a list
+            val_files = split['val']
+            if isinstance(val_files, str):
+                val_files = [val_files]
+            elif not isinstance(val_files, (list, tuple)):
+                raise ValueError(f"Expected list or str for split['val'], got {type(val_files)}")
+
+            # Build absolute paths
+            path_list = [os.path.join(dataset_path, file) for file in val_files]
+            print("✅ Validation files:", path_list)
+
+            # Load AnnData objects
+            N_DEBUG = 1000  # or any small number
+
+            adata_list = []
+            for p in path_list:
+                print(f"📂 Loading subset from {p} ...")
+                adata_backed = ad.read_h5ad(p, backed='r')       # open read-only
+                # choose random subset of cells
+                idx = np.random.choice(adata_backed.n_obs, min(N_DEBUG, adata_backed.n_obs), replace=False)
+                # load only that subset into memory
+                adata_small = adata_backed[idx, :].to_memory()
+                adata_list.append(adata_small)
+                print(f"✅ Loaded {adata_small.n_obs} cells × {adata_small.n_vars} genes from {p}")
+
             for val_name, val_kwargs in dataset_kwargs['val'].items():
                 path_list = [os.path.join(dataset_path, file) for file in split['val']]
                 adata_list = [ad.read_h5ad(p) for p in path_list] 
