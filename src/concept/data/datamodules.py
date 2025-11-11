@@ -10,7 +10,8 @@ from lamin_dataloader.dataset import TokenizedDataset, Tokenizer
 from concept.data.collate import Collate
 from concept.data.samplers import WithinGroupSampler
 
-from lamin_dataloader.collections import MappedCollection
+from lamin_dataloader.collections import InMemoryCollection as MappedCollection
+
 
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 import multiprocessing
