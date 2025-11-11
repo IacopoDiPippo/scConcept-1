@@ -58,7 +58,7 @@ class AnnDataModule(L.LightningDataModule):
             path_list = [os.path.join(dataset_path, file) for file in train_files]
             print("✅ Training files:", path_list)
             # limit number of cells for debugging
-            N_DEBUG = 1  # or any small number
+            N_DEBUG = 256 # or any small number
 
             adata_list = []
             for p in path_list:
