@@ -49,6 +49,7 @@ class MappedCollectionDataModule(L.LightningDataModule):
 
         if 'train' in split and split['train'] is not None and 'train' in dataset_kwargs:
             path_list = [os.path.join(dataset_path, file) for file in split['train']]
+            print(path_list)
             adata_list = [ad.read_h5ad(p) for p in path_list] 
             within_group_sampling = dataloader_kwargs['train']['within_group_sampling']
             keys_to_cache = [within_group_sampling] if within_group_sampling else []
