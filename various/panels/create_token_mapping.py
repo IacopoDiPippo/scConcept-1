@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 
 # ---- SETTINGS ----
-adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/abc_atlas.h5ad.h5ad"
+adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/abc_atlas.h5ad"
 output_path = Path("/p/home/jusers/dipippo1/jureca/projects/scConcept-1/various/pc_gene_token_mapping.pkl")
 
 print(f"🔍 Reading {adata_path} in backed mode (-r)...")
