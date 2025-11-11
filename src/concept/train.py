@@ -1,4 +1,7 @@
 import os
+import lamindb as ln
+ln.setup.init(storage="./lamin_instance", name="local", schema="core")
+
 import sys
 import shutil
 import filecmp
