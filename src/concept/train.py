@@ -109,8 +109,8 @@ def train() -> None:
         split[key] = [os.path.join(dataset_path, file) for file in filenames]
     
     datamodule_args = {    
-        'split': split,
         'dataset_path': dataset_path,
+        'split': split,
         'panels_path': cfg.PATH.PANELS_PATH,
         'columns': cfg.datamodule.columns,
         'precomp_embs_key': cfg.datamodule.precomp_embs_key,
