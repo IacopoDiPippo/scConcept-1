@@ -9,7 +9,11 @@ from torch.utils.data import DataLoader, RandomSampler
 from lamin_dataloader.dataset import TokenizedDataset, Tokenizer
 from concept.data.collate import Collate
 from concept.data.samplers import WithinGroupSampler
-from lamin_dataloader.collections import MappedCollection
+try:
+    from lamin_dataloader.collections import MappedCollection
+except ImportError:
+    from lamin_dataloader._mapped_collection import MappedCollection
+
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 import multiprocessing
 
