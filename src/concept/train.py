@@ -61,7 +61,7 @@ def train() -> None:
     else:
         print(f"Starting new training ...")
         print('overrides:', sys.argv[1:])
-        with initialize(version_base=None, config_path="../conf"):
+        with initialize(version_base=None, config_path="conf"):
             cfg = compose(config_name="config", overrides=sys.argv[1:])
         
     
