@@ -104,13 +104,10 @@ def train() -> None:
         
     gene_mapping = pd.read_pickle(cfg.PATH.gene_mapping_path).to_dict()
     
-    split = {}
-    for key, filenames in cfg.PATH.SPLIT.items():
-        split[key] = [os.path.join(dataset_path, file) for file in filenames]
-    
+
     datamodule_args = {    
         'dataset_path': dataset_path,
-        'split': split,
+        'split': cfg.PATH.SPLIT,
         'panels_path': cfg.PATH.PANELS_PATH,
         'columns': cfg.datamodule.columns,
         'precomp_embs_key': cfg.datamodule.precomp_embs_key,
