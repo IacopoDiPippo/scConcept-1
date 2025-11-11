@@ -1,6 +1,4 @@
 import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lamindb.settings")
-
 import sys
 import shutil
 import filecmp
@@ -15,9 +13,9 @@ from omegaconf import DictConfig, OmegaConf
 from lightning.pytorch.utilities import rank_zero_only
 
 from lamin_dataloader.dataset import GeneIdTokenizer
-from data.datamodules import MappedCollectionDataModule
-from data.utils import add_count_nnz
-from model import BiEncoderContrastiveModel
+from concept.data.datamodules import AnnDataModule
+from concept.data.utils import add_count_nnz
+from concept.model import BiEncoderContrastiveModel
 import wandb
 from lightning.pytorch.strategies import DDPStrategy, ParallelStrategy, SingleDeviceStrategy
 from pathlib import Path
@@ -61,7 +59,7 @@ def train() -> None:
     else:
         print(f"Starting new training ...")
         print('overrides:', sys.argv[1:])
-        with initialize(version_base=None, config_path="conf"):
+        with initialize(version_base=None, config_path="../conf"):
             cfg = compose(config_name="config", overrides=sys.argv[1:])
         
     
@@ -105,9 +103,13 @@ def train() -> None:
         val_loader_names = []
         
     gene_mapping = pd.read_pickle(cfg.PATH.gene_mapping_path).to_dict()
-    datamodule_args = {
-        'dataset_path': dataset_path,
-        'split': cfg.PATH.SPLIT,
+    
+    split = {}
+    for key, filenames in cfg.PATH.SPLIT.items():
+        split[key] = [os.path.join(dataset_path, file) for file in filenames]
+    
+    datamodule_args = {    
+        'split': split,
         'panels_path': cfg.PATH.PANELS_PATH,
         'columns': cfg.datamodule.columns,
         'precomp_embs_key': cfg.datamodule.precomp_embs_key,
@@ -120,7 +122,7 @@ def train() -> None:
         'val_loader_names': val_loader_names,
         'tokenizer': GeneIdTokenizer(gene_mapping)
     }
-    datamodule = MappedCollectionDataModule(**datamodule_args)
+    datamodule = AnnDataModule(**datamodule_args)
 
     if cfg.wandb.enabled:
         logger = WandbLogger(name=cfg.wandb.run_name, entity=cfg.wandb.entity, project=cfg.wandb.project, save_dir=cfg.PATH.PROJECT_PATH, log_model=False)
