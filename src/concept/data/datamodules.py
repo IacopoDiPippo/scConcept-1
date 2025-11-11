@@ -57,7 +57,6 @@ class MappedCollectionDataModule(L.LightningDataModule):
                 path_list,
                 layers_keys="X",
                 obs_keys=columns,
-                encode_labels=True,
                 obsm_keys=precomp_embs_key
             )
             self.train_dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['train']})
@@ -73,7 +72,6 @@ class MappedCollectionDataModule(L.LightningDataModule):
                     path_list,
                     layers_keys="X",
                     obs_keys=columns,
-                    encode_labels=True,
                     obsm_keys=precomp_embs_key
                 )
                 dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **val_kwargs})
@@ -86,7 +84,6 @@ class MappedCollectionDataModule(L.LightningDataModule):
                     path_list,
                     layers_keys="X",
                     obs_keys=columns,
-                    encode_labels=True,
                     obsm_keys=precomp_embs_key
                 )
             self.test_dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['test']})
