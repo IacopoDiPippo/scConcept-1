@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List
-
+import anndata as ad
 
 import lightning as L
 import torch
@@ -49,12 +49,13 @@ class MappedCollectionDataModule(L.LightningDataModule):
 
         if 'train' in split and split['train'] is not None and 'train' in dataset_kwargs:
             path_list = [os.path.join(dataset_path, file) for file in split['train']]
+            adata_list = [ad.read_h5ad(p) for p in path_list] 
             within_group_sampling = dataloader_kwargs['train']['within_group_sampling']
             keys_to_cache = [within_group_sampling] if within_group_sampling else []
             self.train_collate_fn = self._get_collate_fn(dataset_kwargs['train'], split_input=True)
             join = None if within_group_sampling else "outer"
             collection = MappedCollection(
-                path_list,
+                adata_list,
                 layers_keys="X",
                 obs_keys=columns,
                 obsm_keys=precomp_embs_key
@@ -64,12 +65,13 @@ class MappedCollectionDataModule(L.LightningDataModule):
             self.val_datasets = {}
             for val_name, val_kwargs in dataset_kwargs['val'].items():
                 path_list = [os.path.join(dataset_path, file) for file in split['val']]
+                adata_list = [ad.read_h5ad(p) for p in path_list] 
                 within_group_sampling = dataloader_kwargs['val'][val_name]['within_group_sampling']
                 keys_to_cache = [within_group_sampling] if within_group_sampling else []
                 val_collate_fn = self._get_collate_fn(val_kwargs, split_input=True)
                 join = None if within_group_sampling else "outer"
                 collection = MappedCollection(
-                    path_list,
+                    adata_list,
                     layers_keys="X",
                     obs_keys=columns,
                     obsm_keys=precomp_embs_key
@@ -78,10 +80,11 @@ class MappedCollectionDataModule(L.LightningDataModule):
                 self.val_datasets[val_name] = (dataset, val_collate_fn)
         if 'test' in split and split['test'] is not None and 'test' in dataset_kwargs:
             path_list = [os.path.join(dataset_path, file) for file in split['test']]
+            adata_list = [ad.read_h5ad(p) for p in path_list] 
             keys_to_cache = None
             self.test_collate_fn = self._get_collate_fn(dataset_kwargs['test'], split_input=False)
             collection = MappedCollection(
-                    path_list,
+                    adata_list,
                     layers_keys="X",
                     obs_keys=columns,
                     obsm_keys=precomp_embs_key
