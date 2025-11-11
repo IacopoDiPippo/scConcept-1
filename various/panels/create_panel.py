@@ -4,7 +4,7 @@ from pathlib import Path
 
 # ---- SETTINGS ----
 adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad"
-output_dir = Path("/mouse")       # where to save the panel
+output_dir = Path("/p/home/jusers/dipippo1/jureca/projects/test_scConcept-1/various/mouse")       # where to save the panel
 panel_name = "ZengGenePanel.csv"  # name of the CSV
 
 print(f"🔍 Reading {adata_path} in backed mode (-r)...")
@@ -21,8 +21,6 @@ else:
 # ---- LOGGING PROGRESS ----
 n_genes = len(ensembl_ids)
 print(f"📊 Found {n_genes} genes in the dataset.")
-for i in range(0, n_genes, 5000):
-    print(f"  → Processing genes {i}–{min(i+5000, n_genes)}")
 
 # ---- CREATE PANEL DATAFRAME ----
 panel_df = pd.DataFrame({"Ensembl_ID": ensembl_ids})
