@@ -53,7 +53,13 @@ class MappedCollectionDataModule(L.LightningDataModule):
             keys_to_cache = [within_group_sampling] if within_group_sampling else []
             self.train_collate_fn = self._get_collate_fn(dataset_kwargs['train'], split_input=True)
             join = None if within_group_sampling else "outer"
-            collection = MappedCollection(path_list, layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=join, encode_labels=True, parallel=True, obsm_keys=precomp_embs_key)
+            collection = MappedCollection(
+                path_list,
+                layers_keys="X",
+                obs_keys=columns,
+                encode_labels=True,
+                obsm_keys=precomp_embs_key
+            )
             self.train_dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['train']})
         if 'val' in split and split['val'] is not None and 'val' in dataset_kwargs:
             self.val_datasets = {}
@@ -63,14 +69,26 @@ class MappedCollectionDataModule(L.LightningDataModule):
                 keys_to_cache = [within_group_sampling] if within_group_sampling else []
                 val_collate_fn = self._get_collate_fn(val_kwargs, split_input=True)
                 join = None if within_group_sampling else "outer"
-                collection = MappedCollection(path_list, layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=join, encode_labels=True, parallel=True, obsm_keys=precomp_embs_key)
+                collection = MappedCollection(
+                    path_list,
+                    layers_keys="X",
+                    obs_keys=columns,
+                    encode_labels=True,
+                    obsm_keys=precomp_embs_key
+                )
                 dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **val_kwargs})
                 self.val_datasets[val_name] = (dataset, val_collate_fn)
         if 'test' in split and split['test'] is not None and 'test' in dataset_kwargs:
             path_list = [os.path.join(dataset_path, file) for file in split['test']]
             keys_to_cache = None
             self.test_collate_fn = self._get_collate_fn(dataset_kwargs['test'], split_input=False)
-            collection = MappedCollection(path_list, layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=None, encode_labels=True, parallel=True)
+            collection = MappedCollection(
+                    path_list,
+                    layers_keys="X",
+                    obs_keys=columns,
+                    encode_labels=True,
+                    obsm_keys=precomp_embs_key
+                )
             self.test_dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['test']})
 
         self._val_dataloader = None
