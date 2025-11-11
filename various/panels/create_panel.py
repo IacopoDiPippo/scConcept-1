@@ -3,28 +3,33 @@ import pandas as pd
 from pathlib import Path
 
 # ---- SETTINGS ----
-adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad" # change this
-output_dir = Path("/mouse")      # your panels directory
-panel_name = "ZengGenePanel.csv"       # name of the panel CSV to create
+adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad"
+output_dir = Path("/mouse")       # where to save the panel
+panel_name = "ZengGenePanel.csv"  # name of the CSV
 
-# ---- LOAD DATA ----
-adata = ad.read_h5ad(adata_path)
+print(f"🔍 Reading {adata_path} in backed mode (-r)...")
+adata = ad.read_h5ad(adata_path, backed='r')
 
 # ---- GET ENSEMBL IDS ----
-# Check where your Ensembl gene IDs are stored
 if "gene_ids" in adata.var.columns:
+    print("✅ Found 'gene_ids' column in .var, using that for Ensembl IDs.")
     ensembl_ids = adata.var["gene_ids"].astype(str)
-    print("✅ Using adata.var['gene_ids'] for Ensembl IDs.")
 else:
+    print("⚠️ No 'gene_ids' column found, using .var_names instead.")
     ensembl_ids = adata.var_names.astype(str)
-    print("⚠️ Using adata.var_names for Ensembl IDs (no 'gene_ids' column found).")
 
-# ---- CREATE DATAFRAME ----
+# ---- LOGGING PROGRESS ----
+n_genes = len(ensembl_ids)
+print(f"📊 Found {n_genes} genes in the dataset.")
+for i in range(0, n_genes, 5000):
+    print(f"  → Processing genes {i}–{min(i+5000, n_genes)}")
+
+# ---- CREATE PANEL DATAFRAME ----
 panel_df = pd.DataFrame({"Ensembl_ID": ensembl_ids})
 
-# ---- SAVE CSV ----
+# ---- SAVE ----
 output_dir.mkdir(parents=True, exist_ok=True)
 panel_path = output_dir / panel_name
 panel_df.to_csv(panel_path, index=False)
 
-print(f"✅ Saved panel with {len(panel_df)} genes to {panel_path}")
+print(f"\n✅ Done! Saved panel with {len(panel_df)} genes to {panel_path}")
