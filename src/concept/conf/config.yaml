@@ -5,11 +5,12 @@ defaults:
   - _self_
 
 wandb:
-  enabled: True
+  enabled: true
   run_id: null
   run_name: debug_run
-  entity: transformer
-  project: contrastive-transformer
+  entity: iacopodipippo
+  project: scConcept
+
   
   
 PATH:
