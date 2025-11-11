@@ -1,4 +1,6 @@
 import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lamindb.settings")
+
 import sys
 import shutil
 import filecmp
