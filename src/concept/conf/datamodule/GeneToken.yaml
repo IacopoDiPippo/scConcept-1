@@ -1,5 +1,5 @@
 name: GeneToken
-columns: ["cell_type", "donor_id"]
+columns: ["subclass", "donor_label"]
 normalization: log1p
 gene_sampling_strategy: random-nonzero
 model_speed_sanity_check: False
