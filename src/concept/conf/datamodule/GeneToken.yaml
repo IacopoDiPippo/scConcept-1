@@ -28,7 +28,7 @@ dataset:
       panel_filter_regex: ${datamodule.dataset.train.panel_filter_regex}
       panel_size_min: ${datamodule.dataset.train.panel_size_min}
       panel_size_max: ${datamodule.dataset.train.panel_size_max}
-    within_P200_B256:
+    within_P100_B256:
       max_tokens: 200
       variable_size: False
       panel_selection: random
@@ -76,36 +76,6 @@ dataset:
       variable_size: False
       panel_selection: preselected
       panel_filter_regex: "Xenium_hIO_v1"
-      panel_size_min: 800
-      panel_size_max: 800
-    within_P_Xenium_hIO_vs_all_B256:
-      max_tokens: ${datamodule.dataset.train.max_tokens}
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Xenium_hIO_v1"
-      panel_size_min: 100000
-      panel_size_max: 100000
-      panel_overlap: True
-    within_P_SEAAD_B256:
-      max_tokens: 800
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Merfish-SEA-AD"
-      panel_size_min: 800
-      panel_size_max: 800
-    within_P_SEAAD_vs_all_B256:
-      max_tokens: ${datamodule.dataset.train.max_tokens}
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Merfish-SEA-AD"
-      panel_size_min: 100000
-      panel_size_max: 100000
-      panel_overlap: True
-    within_P_Xenium_Human_Prime_5K_B256:
-      max_tokens: 800
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Xenium_Human_Prime_5K"
       panel_size_min: 800
       panel_size_max: 800
 
@@ -185,38 +155,6 @@ dataloader:
       drop_last: True
       num_samples: 100000
     within_P_Xenium_hIO_B256:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
-    within_P_Xenium_hIO_vs_all_B256:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
-    within_P_SEAAD_B256:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
-    within_P_SEAAD_vs_all_B256:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
-    within_P_Xenium_Human_Prime_5K_B256:
       within_group_sampling: "dataset"
       batch_size: 256
       shuffle: True
