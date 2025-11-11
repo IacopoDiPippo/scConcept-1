@@ -28,7 +28,7 @@ dataset:
       panel_filter_regex: ${datamodule.dataset.train.panel_filter_regex}
       panel_size_min: ${datamodule.dataset.train.panel_size_min}
       panel_size_max: ${datamodule.dataset.train.panel_size_max}
-    within_P100_B256:
+    within_P200_B256:
       max_tokens: 200
       variable_size: False
       panel_selection: random
@@ -75,7 +75,7 @@ dataset:
       max_tokens: 800
       variable_size: False
       panel_selection: preselected
-      panel_filter_regex: "Xenium_hIO_v1"
+      panel_filter_regex: "ZengGenePanel"
       panel_size_min: 800
       panel_size_max: 800
 
