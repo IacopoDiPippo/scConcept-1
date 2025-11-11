@@ -1,7 +1,4 @@
 import os
-import lamindb as ln
-ln.setup.init(storage="./lamin_instance", name="local", schema="core")
-
 import sys
 import shutil
 import filecmp
@@ -113,6 +110,7 @@ def train() -> None:
     
     datamodule_args = {    
         'split': split,
+        'dataset_path': dataset_path,
         'panels_path': cfg.PATH.PANELS_PATH,
         'columns': cfg.datamodule.columns,
         'precomp_embs_key': cfg.datamodule.precomp_embs_key,

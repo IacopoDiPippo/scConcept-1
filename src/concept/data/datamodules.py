@@ -4,6 +4,8 @@ from typing import Dict, List
 
 import lightning as L
 import torch
+import anndata as ad
+import numpy as np
 import torch.distributed as dist
 from torch.utils.data import DataLoader, RandomSampler
 from lamin_dataloader.dataset import TokenizedDataset, Tokenizer
@@ -17,6 +19,7 @@ from anndata import AnnData
 class AnnDataModule(L.LightningDataModule):
     def __init__(
         self,
+        dataset_path: str,
         split: Dict,
         panels_path: str,
         tokenizer: Tokenizer,
@@ -45,35 +48,78 @@ class AnnDataModule(L.LightningDataModule):
                 
 
         if 'train' in split and split['train'] is not None and 'train' in dataset_kwargs:
+            train_files = split['train']
+            # Ensure it's a list
+            if isinstance(train_files, str):
+                train_files = [train_files]
+            elif not isinstance(train_files, (list, tuple)):
+                raise ValueError(f"Expected list or str for split['train'], got {type(train_files)}")
+
+            path_list = [os.path.join(dataset_path, file) for file in train_files]
+            print("✅ Training files:", path_list)
+            # limit number of cells for debugging
+            N_DEBUG = 1  # or any small number
+
+            adata_list = []
+            for p in path_list:
+                print(f"📂 Loading subset from {p} ...")
+                adata_backed = ad.read_h5ad(p, backed='r')       # open read-only
+                # choose random subset of cells
+                idx = np.random.choice(adata_backed.n_obs, min(N_DEBUG, adata_backed.n_obs), replace=False)
+                # load only that subset into memory
+                adata_small = adata_backed[idx, :].to_memory()
+                adata_list.append(adata_small)
+                print(f"✅ Loaded {adata_small.n_obs} cells × {adata_small.n_vars} genes from {p}")
+
+
             within_group_sampling = dataloader_kwargs['train']['within_group_sampling']
             keys_to_cache = [within_group_sampling] if within_group_sampling else []
             self.train_collate_fn = self._get_collate_fn(dataset_kwargs['train'], split_input=True)
             
-            if isinstance(split['train'][0], AnnData):
+            if isinstance(adata_list[0], AnnData):
                 assert within_group_sampling == 'dataset', 'within_group_sampling must be dataset for AnnData objects'
                 # Use InMemoryCollection for AnnData objects
                 collection = InMemoryCollection(
-                    adata_list=split['train'],
+                    adata_list=adata_list,
                     obs_keys=columns,
                     layers_keys=['X'],
                     obsm_keys=precomp_embs_key,
                     keys_to_cache=keys_to_cache
                 )
-            else:
-                # Use LaminDiskCollection for file paths
-                from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
-                join = None if within_group_sampling else "outer"
-                collection = LaminDiskCollection(split['train'], layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=join, encode_labels=True, parallel=True, obsm_keys=precomp_embs_key)
-            
+    
             self.train_dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['train']})
         if 'val' in split and split['val'] is not None and 'val' in dataset_kwargs:
             self.val_datasets = {}
             for val_name, val_kwargs in dataset_kwargs['val'].items():
+                # Ensure val split is always a list
+                val_files = split['val']
+                if isinstance(val_files, str):
+                    val_files = [val_files]
+                elif not isinstance(val_files, (list, tuple)):
+                    raise ValueError(f"Expected list or str for split['val'], got {type(val_files)}")
+
+                # Build absolute paths
+                path_list = [os.path.join(dataset_path, file) for file in val_files]
+                print("✅ Validation files:", path_list)
+
+                # Load AnnData objects
+
+                adata_list = []
+                for p in path_list:
+                    print(f"📂 Loading subset from {p} ...")
+                    adata_backed = ad.read_h5ad(p, backed='r')       # open read-only
+                    # choose random subset of cells
+                    idx = np.random.choice(adata_backed.n_obs, min(N_DEBUG, adata_backed.n_obs), replace=False)
+                    # load only that subset into memory
+                    adata_small = adata_backed[idx, :].to_memory()
+                    adata_list.append(adata_small)
+                    print(f"✅ Loaded {adata_small.n_obs} cells × {adata_small.n_vars} genes from {p}")
+
                 within_group_sampling = dataloader_kwargs['val'][val_name]['within_group_sampling']
                 keys_to_cache = [within_group_sampling] if within_group_sampling else []
                 val_collate_fn = self._get_collate_fn(val_kwargs, split_input=True)
                 
-                if isinstance(split['val'][0], AnnData):
+                if isinstance(adata_list, AnnData):
                     assert within_group_sampling == 'dataset', 'within_group_sampling must be dataset for AnnData objects'
                     # Use InMemoryCollection for AnnData objects
                     collection = InMemoryCollection(
@@ -83,12 +129,7 @@ class AnnDataModule(L.LightningDataModule):
                         obsm_keys=precomp_embs_key,
                         keys_to_cache=keys_to_cache
                     )
-                else:
-                    # Use LaminDiskCollection for file paths
-                    from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
-                    join = None if within_group_sampling else "outer"
-                    collection = LaminDiskCollection(split['val'], layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=join, encode_labels=True, parallel=True, obsm_keys=precomp_embs_key)
-                
+          
                 dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **val_kwargs})
                 self.val_datasets[val_name] = (dataset, val_collate_fn)
         if 'test' in split and split['test'] is not None and 'test' in dataset_kwargs:
@@ -105,10 +146,6 @@ class AnnDataModule(L.LightningDataModule):
                     obsm_keys=precomp_embs_key,
                     keys_to_cache=keys_to_cache
                 )
-            else:
-                # Use LaminDiskCollection for file paths
-                from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
-                collection = LaminDiskCollection(split['test'], layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=None, encode_labels=True, parallel=True)
             
             self.test_dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['test']})
 
