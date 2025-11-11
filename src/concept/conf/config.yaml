@@ -5,7 +5,7 @@ defaults:
   - _self_
 
 wandb:
-  enabled: true
+  enabled: false
   run_id: null
   run_name: debug_run
   entity: iacopodipippo
