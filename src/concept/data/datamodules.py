@@ -58,7 +58,7 @@ class MappedCollectionDataModule(L.LightningDataModule):
             path_list = [os.path.join(dataset_path, file) for file in train_files]
             print("✅ Training files:", path_list)
             # limit number of cells for debugging
-            N_DEBUG = 1000  # or any small number
+            N_DEBUG = 1  # or any small number
 
             adata_list = []
             for p in path_list:
@@ -96,7 +96,6 @@ class MappedCollectionDataModule(L.LightningDataModule):
             print("✅ Validation files:", path_list)
 
             # Load AnnData objects
-            N_DEBUG = 1000  # or any small number
 
             adata_list = []
             for p in path_list:
@@ -111,7 +110,6 @@ class MappedCollectionDataModule(L.LightningDataModule):
 
             for val_name, val_kwargs in dataset_kwargs['val'].items():
                 path_list = [os.path.join(dataset_path, file) for file in split['val']]
-                adata_list = [ad.read_h5ad(p) for p in path_list] 
                 within_group_sampling = dataloader_kwargs['val'][val_name]['within_group_sampling']
                 keys_to_cache = [within_group_sampling] if within_group_sampling else []
                 val_collate_fn = self._get_collate_fn(val_kwargs, split_input=True)
