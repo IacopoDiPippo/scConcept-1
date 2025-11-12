@@ -155,7 +155,7 @@ def train() -> None:
     if int(cfg.model.training.devices) > 1 or int(cfg.model.training.num_nodes) > 1:
         strategy = DDPStrategy(find_unused_parameters=True)
     else:
-        strategy = SingleDeviceStrategy(device='cuda')
+        strategy = SingleDeviceStrategy(device=torch.device("cuda:0"))
 
     trainer = L.Trainer(**trainer_kwargs, 
                         strategy=strategy,
