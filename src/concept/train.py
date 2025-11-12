@@ -151,14 +151,19 @@ def train() -> None:
             ModelCheckpoint(dirpath=os.path.join(CHECKPOINT_PATH, 'steps'), filename='{step}', every_n_train_steps=10000, monitor='train/loss', save_top_k=-1), # save a checkpoint every 10K steps
         ],
     }
+    # Automatically pick the right strategy
+    if int(cfg.model.training.devices) > 1 or int(cfg.model.training.num_nodes) > 1:
+        strategy = DDPStrategy(find_unused_parameters=True)
+    else:
+        strategy = SingleDeviceStrategy(device='cuda')
+
     trainer = L.Trainer(**trainer_kwargs, 
-                        strategy=DDPStrategy(find_unused_parameters=True), # timeout = datetime.timedelta(seconds=1800*3)
-                        # strategy=DDPStrategy(), 
-                        # strategy=SingleDeviceStrategy(device='cuda'),
+                        strategy=strategy,
                         precision='bf16-mixed', 
                         use_distributed_sampler=False,
                         accumulate_grad_batches=cfg.model.training.accumulate_grad_batches,
                         )
+
 
 
     model_args = {
