@@ -1,4 +1,7 @@
 import os
+os.environ["WANDB_MODE"] = "offline"   # absolute guarantee
+os.environ["WANDB_SILENT"] = "true"    # optional, suppress warnings
+
 import sys
 import shutil
 import filecmp
@@ -124,7 +127,7 @@ def train() -> None:
     datamodule = AnnDataModule(**datamodule_args)
 
     if cfg.wandb.enabled:
-        logger = WandbLogger(name=cfg.wandb.run_name, entity=cfg.wandb.entity, project=cfg.wandb.project, save_dir=cfg.PATH.PROJECT_PATH, log_model=False)
+        logger = WandbLogger(name=cfg.wandb.run_name, entity=cfg.wandb.entity, project=cfg.wandb.project, save_dir=cfg.PATH.PROJECT_PATH, log_model=False, mode="offline",)
     
     CHECKPOINT_PATH = "dummy"
     if rank_zero_only.rank == 0:
