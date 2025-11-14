@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-#  Environment setup script for scConcept-1 project
+#  Environment setup script for scConcept-1 project (JURECA-DC)
 #  Loads modules, activates virtual environment, sets paths
 # ============================================================
 
@@ -15,15 +15,17 @@ module load matplotlib scikit-image scikit-learn JupyterLab git
 # --- 2. Get script directory (absolute path) ---
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-# --- 3. Define virtual environment path ---
-VENV_PATH="${SCRIPT_DIR}/../.env/scConcept-1"
+# --- 3. Define virtual environment path (SCRATCH RELOCATION) ---
+# Change from old PROJECT path to:
+VENV_PATH="/p/scratch/cjinm16/dipippo1/envs/scConcept-1"
 
 # --- 4. Activate the virtual environment ---
 if [ -d "${VENV_PATH}" ]; then
     source "${VENV_PATH}/bin/activate"
 else
     echo "❌ Virtual environment not found at: ${VENV_PATH}"
-    echo "Please create it first using: python -m venv ${VENV_PATH}"
+    echo "Please create it first using:"
+    echo "    python -m venv --system-site-packages ${VENV_PATH}"
     exit 1
 fi
 
