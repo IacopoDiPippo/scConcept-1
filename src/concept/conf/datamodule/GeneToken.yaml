@@ -40,12 +40,6 @@ dataset:
       panel_selection: random
       panel_size_min: 800
       panel_size_max: 800
-    within_P6400_B256:
-      max_tokens: 6400
-      panel_selection: random
-      variable_size: False
-      panel_size_min: 6400
-      panel_size_max: 6400
     # across_P800_B256:
     #   max_tokens: 800
     #   variable_size: False
@@ -64,20 +58,13 @@ dataset:
     #   panel_selection: random
     #   panel_size_min: 800
     #   panel_size_max: 800
-    within_Preselected_B256:
-      max_tokens: 800
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: ".*"
-      panel_size_min: 800
-      panel_size_max: 800
     within_P_Xenium_hIO_B256:
-      max_tokens: 800
+      max_tokens: 500
       variable_size: False
       panel_selection: preselected
       panel_filter_regex: "ZengGenePanel"
-      panel_size_min: 800
-      panel_size_max: 800
+      panel_size_min: 500
+      panel_size_max: 500
 
 
 dataloader:
@@ -114,14 +101,6 @@ dataloader:
       pin_memory: False
       drop_last: True
       num_samples: 100000
-    within_P6400_B256:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
     # across_P800_B256:
     #   within_group_sampling: null
     #   batch_size: 256
@@ -146,14 +125,6 @@ dataloader:
     #   pin_memory: False
     #   drop_last: True
     #   num_samples: 100000
-    within_Preselected_B256:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
     within_P_Xenium_hIO_B256:
       within_group_sampling: "dataset"
       batch_size: 256
