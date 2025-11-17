@@ -7,7 +7,7 @@ defaults:
 wandb:
   enabled: true
   run_id: null
-  run_name: debug_run
+  run_name: actual_run
   entity: iacopodipippo
   project: scConcept
 
