@@ -8,7 +8,7 @@ wandb:
   enabled: true
   run_id: null
   run_name: actual_run
-  entity: iacopodipippo
+  entity: iacopodipippo-technical-university-of-munich
   project: scConcept
 
   
