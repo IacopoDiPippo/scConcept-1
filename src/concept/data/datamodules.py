@@ -58,20 +58,20 @@ class AnnDataModule(L.LightningDataModule):
             path_list = [os.path.join(dataset_path, file) for file in train_files]
             print("✅ Training files:", path_list)
             # limit number of cells for debugging
-            N_DEBUG = 256 # or any small number
+            N_DEBUG = 256 * 4 # or any small number
 
             adata_list = []
             for p in path_list:
                 print(f"📂 Loading subset from {p} ...")
-                """adata_backed = ad.read_h5ad(p, backed='r')       # open read-only
+                adata_backed = ad.read_h5ad(p, backed='r')       # open read-only
                 # choose random subset of cells
                 idx = np.random.choice(adata_backed.n_obs, min(N_DEBUG, adata_backed.n_obs), replace=False)
                 # load only that subset into memory
                 adata_small = adata_backed[idx, :].to_memory()
                 adata_list.append(adata_small)
-                print(f"✅ Loaded {adata_small.n_obs} cells × {adata_small.n_vars} genes from {p}")"""
-                adata_full = ad.read_h5ad(p)  # loads entire file into memory
-                adata_list.append(adata_full)
+                print(f"✅ Loaded {adata_small.n_obs} cells × {adata_small.n_vars} genes from {p}")
+                #adata_full = ad.read_h5ad(p)  # loads entire file into memory
+                #adata_list.append(adata_full)
 
 
             within_group_sampling = dataloader_kwargs['train']['within_group_sampling']
@@ -109,15 +109,15 @@ class AnnDataModule(L.LightningDataModule):
                 adata_list = []
                 for p in path_list:
                     print(f"📂 Loading subset from {p} ...")
-                    """ adata_backed = ad.read_h5ad(p, backed='r')       # open read-only
+                    adata_backed = ad.read_h5ad(p, backed='r')       # open read-only
                     # choose random subset of cells
                     idx = np.random.choice(adata_backed.n_obs, min(N_DEBUG, adata_backed.n_obs), replace=False)
                     # load only that subset into memory
                     adata_small = adata_backed[idx, :].to_memory()
                     adata_list.append(adata_small)
-                    print(f"✅ Loaded {adata_small.n_obs} cells × {adata_small.n_vars} genes from {p}")"""
-                    adata_full = ad.read_h5ad(p)  # loads entire file into memory
-                    adata_list.append(adata_full)
+                    print(f"✅ Loaded {adata_small.n_obs} cells × {adata_small.n_vars} genes from {p}")
+                    #adata_full = ad.read_h5ad(p)  # loads entire file into memory
+                    #adata_list.append(adata_full)
                     
 
                 within_group_sampling = dataloader_kwargs['val'][val_name]['within_group_sampling']
