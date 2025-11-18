@@ -1,7 +1,12 @@
 import os
 os.environ["WANDB_MODE"] = "offline"   # absolute guarantee
 os.environ["WANDB_SILENT"] = "true"    # optional, suppress warnings
+import os
+# Dove mettere la cache blob (artifact leggeri interni)
+os.environ["WANDB_CACHE_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/cache"
 
+# Dove mettere i file media
+os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/media"
 import sys
 import shutil
 import filecmp
@@ -127,7 +132,7 @@ def train() -> None:
     datamodule = AnnDataModule(**datamodule_args)
 
     if cfg.wandb.enabled:
-        logger = WandbLogger(name=cfg.wandb.run_name, entity=cfg.wandb.entity, project=cfg.wandb.project, save_dir=cfg.PATH.PROJECT_PATH, log_model=False, mode="offline",)
+        logger = WandbLogger(name=cfg.wandb.run_name, entity=cfg.wandb.entity, project=cfg.wandb.project, save_dir=cfg.PATH.SCRATCH_ROOT, log_model=False, mode="offline",)
     
     CHECKPOINT_PATH = "dummy"
     if rank_zero_only.rank == 0:
@@ -135,6 +140,11 @@ def train() -> None:
         if cfg.wandb.enabled:
             logger.experiment.config.update(OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
         # print(OmegaConf.to_yaml(cfg))
+
+    LIGHTNING_LOG_DIR = os.path.join(cfg.PATH.SCRATCH_ROOT, "lightning_logs")
+    os.makedirs(LIGHTNING_LOG_DIR, exist_ok=True)
+
+    trainer_kwargs["default_root_dir"] = LIGHTNING_LOG_DIR
 
     trainer_kwargs = {
         'max_steps': cfg.model.training.max_steps,

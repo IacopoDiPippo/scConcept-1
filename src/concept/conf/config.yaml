@@ -16,7 +16,8 @@ wandb:
 PATH:
   PROJECT_PATH: /p/home/jusers/dipippo1/jureca/projects/scConcept-1
   PROJECT_DATA_PATH: /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw
-  CHECKPOINT_ROOT: ${PATH.PROJECT_PATH}/model_checkpoints
+  SCRATCH_ROOT: /p/scratch/cjinm16/dipippo1
+  CHECKPOINT_ROOT: ${SCRATCH_ROOT}/model_checkpoints
   DATASET_PATH: ${PATH.PROJECT_DATA_PATH}
   ADATA_PATH: ${PATH.DATASET_PATH}
   PANELS_PATH: ${PATH.PROJECT_PATH}/various/panels/mouse

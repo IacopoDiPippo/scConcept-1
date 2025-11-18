@@ -672,29 +672,65 @@ class BiEncoderContrastiveModel(BaseTransformerModel):
 
     def on_train_epoch_end(self):
         if self.global_rank == 0:
-            max_size = 1000
-            columns = ["panel_name", "panel_size_1", "panel_size_2", "context_size_1", "context_size_2", "nonzero_size_1", "nonzero_size_2", 
-                        "min_1", "min_2", "max_1", "max_2", "panel_intersect", "token_intersect"]
-            try:
-                table = wandb.Table(columns=columns, data=self.context_sizes['train'][:max_size])
-                self.logger.experiment.log({"train/sample_stats": table})
-            except:
-                pass
+            # I dati sono liste di liste
+            data = self.context_sizes['train']
+
+            if len(data) > 0:
+                # Estraggo alcune colonne che sono numeriche e interessanti da fare histogram
+                panel_sizes_1 = [row[1] for row in data]
+                panel_sizes_2 = [row[2] for row in data]
+                context_sizes_1 = [row[3] for row in data]
+                context_sizes_2 = [row[4] for row in data]
+                nonzero_1 = [row[5] for row in data]
+                nonzero_2 = [row[6] for row in data]
+                panel_intersect = [row[11] for row in data]
+                token_intersect = [row[12] for row in data]
+
+                # Log istogrammi leggeri (NO artifact!)
+                self.logger.experiment.log({
+                    "train/panel_size_1_hist": wandb.Histogram(panel_sizes_1),
+                    "train/panel_size_2_hist": wandb.Histogram(panel_sizes_2),
+                    "train/context_size_1_hist": wandb.Histogram(context_sizes_1),
+                    "train/context_size_2_hist": wandb.Histogram(context_sizes_2),
+                    "train/nonzero_count_1_hist": wandb.Histogram(nonzero_1),
+                    "train/nonzero_count_2_hist": wandb.Histogram(nonzero_2),
+                    "train/panel_intersect_hist": wandb.Histogram(panel_intersect),
+                    "train/token_intersect_hist": wandb.Histogram(token_intersect),
+                })
+
         self.context_sizes['train'] = []
+
     
-    def on_validation_epoch_end(self):     
+    def on_validation_epoch_end(self):
         for val_name in self.val_loader_names:
-            prefix = prefix=f'val/{val_name}' if val_name != 'same' else 'val'
+            prefix = f'val/{val_name}' if val_name != 'same' else 'val'
+
             if self.global_rank == 0:
-                max_size = 1000
-                columns = ["panel_name", "panel_size_1", "panel_size_2", "context_size_1", "context_size_2", "nonzero_size_1", "nonzero_size_2", 
-                            "min_1", "min_2", "max_1", "max_2", "panel_intersect", "token_intersect"]
-                try:
-                    table = wandb.Table(columns=columns, data=self.context_sizes['val'][val_name][:max_size])
-                    self.logger.experiment.log({f"{prefix}/sample_stats": table})
-                except:
-                    pass
+                data = self.context_sizes['val'][val_name]
+
+                if len(data) > 0:
+                    panel_sizes_1 = [row[1] for row in data]
+                    panel_sizes_2 = [row[2] for row in data]
+                    context_sizes_1 = [row[3] for row in data]
+                    context_sizes_2 = [row[4] for row in data]
+                    nonzero_1 = [row[5] for row in data]
+                    nonzero_2 = [row[6] for row in data]
+                    panel_intersect = [row[11] for row in data]
+                    token_intersect = [row[12] for row in data]
+
+                    self.logger.experiment.log({
+                        f"{prefix}/panel_size_1_hist": wandb.Histogram(panel_sizes_1),
+                        f"{prefix}/panel_size_2_hist": wandb.Histogram(panel_sizes_2),
+                        f"{prefix}/context_size_1_hist": wandb.Histogram(context_sizes_1),
+                        f"{prefix}/context_size_2_hist": wandb.Histogram(context_sizes_2),
+                        f"{prefix}/nonzero_count_1_hist": wandb.Histogram(nonzero_1),
+                        f"{prefix}/nonzero_count_2_hist": wandb.Histogram(nonzero_2),
+                        f"{prefix}/panel_intersect_hist": wandb.Histogram(panel_intersect),
+                        f"{prefix}/token_intersect_hist": wandb.Histogram(token_intersect),
+                    })
+
             self.context_sizes['val'][val_name] = []
+
 
     def _validate_panels(self, panel_1, panel_2):
         panel_1 = torch.cat(all_gather(panel_1), dim=0) if self.world_size > 1 else panel_1
