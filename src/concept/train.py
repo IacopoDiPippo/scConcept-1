@@ -40,37 +40,57 @@ def train() -> None:
     
     bash_cfg = OmegaConf.from_cli()
     resume_from_checkpoint = bash_cfg.pop("resume_from_checkpoint", False)
-    if resume_from_checkpoint:
-        
-        run_id = bash_cfg.pop("run_id")
-        checkpoint = bash_cfg.pop("checkpoint")
-        
-        wandb.login()
-        api = wandb.Api()
-        run = api.run(f'{bash_cfg.wandb.entity}/{bash_cfg.wandb.project}/{run_id}')
-        print(f"Resuming training for {run.id} ...")
-        cfg = DictConfig(run.config)
 
-        cfg = OmegaConf.merge(cfg, bash_cfg) 
-        print(OmegaConf.to_yaml(OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)))
+    def is_wandb_offline():
+        return os.environ.get("WANDB_MODE", "").lower() == "offline"
+
+    if resume_from_checkpoint:
+
+        checkpoint_path = bash_cfg.pop("checkpoint")
+
+        print(f"Resuming from checkpoint: {checkpoint_path}")
+
+        # -------------------------------------------
+        # CASE 1: WANDB OFFLINE → Load config from checkpoint
+        # -------------------------------------------
+        if is_wandb_offline():
+            print("W&B is OFFLINE → loading config from checkpoint metadata")
+            ckpt = torch.load(checkpoint_path, map_location="cpu")
+
+            # The config is stored inside Lightning's checkpoint
+            if "hyper_parameters" in ckpt:
+                cfg = OmegaConf.create(ckpt["hyper_parameters"]["config"])
+            else:
+                raise RuntimeError(
+                    "Checkpoint does not contain embedded config. "
+                    "You must save config into checkpoints by passing it as hyperparams."
+                )
+
+            # merge additional CLI overrides
+            cfg = OmegaConf.merge(cfg, bash_cfg)
+            print(OmegaConf.to_yaml(cfg))
         
-        # cfg.datamodule.dataset.train.panel_max_drop_rate=0.5
-        # cfg.datamodule.dataset.train.panel_filter_regex="SEA"
-        # cfg.datamodule.dataset.train.anchor_max_tokens=500
-        
-        cfg.model.training.val_check_interval = float(cfg.model.training.val_check_interval + 0.0) # for a bug in pytorch-lightning
-        cfg.model.training.limit_train_batches = float(cfg.model.training.limit_train_batches)
-        # cfg.model.training.check_val_every_n_epoch = 0
-        # cfg.model.training.num_nodes = 1
-        # for name, path in cfg.PATH.items():
-        #     if isinstance(path, (str, Path)):
-        #         cfg.PATH[name] = str(path).replace('/localscratch/mojtaba.bahrami/projects/contrastive_transformer', '/p/project/nicheformer/contrastive_transformer_storage')
+        # -------------------------------------------
+        # CASE 2: WANDB ONLINE → load config from W&B API
+        # -------------------------------------------
+        else:
+            print("W&B ONLINE → loading config from wandb cloud")
+
+            run_id = bash_cfg.pop("run_id")
+            wandb.login()
+            api = wandb.Api()
+            run = api.run(f'{bash_cfg.wandb.entity}/{bash_cfg.wandb.project}/{run_id}')
+            
+            cfg = DictConfig(run.config)
+            cfg = OmegaConf.merge(cfg, bash_cfg)
+            print(OmegaConf.to_yaml(cfg))
+
     else:
-        print(f"Starting new training ...")
+        print("Starting new training ...")
         print('overrides:', sys.argv[1:])
         with initialize(version_base=None, config_path="./conf"):
             cfg = compose(config_name="config", overrides=sys.argv[1:])
-        
+
     
     dataset_path = cfg.PATH.ADATA_PATH
     if cfg.PATH.LOCAL_DIR is not None:

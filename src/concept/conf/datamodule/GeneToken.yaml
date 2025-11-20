@@ -40,31 +40,74 @@ dataset:
       panel_selection: random
       panel_size_min: 800
       panel_size_max: 800
-    # across_P800_B256:
-    #   max_tokens: 800
-    #   variable_size: False
-    #   panel_selection: random
-    #   panel_size_min: 800
-    #   panel_size_max: 800
-    # within_donor_P800_B256:
-    #   max_tokens: 800
-    #   variable_size: False
-    #   panel_selection: random
-    #   panel_size_min: 800
-    #   panel_size_max: 800
-    # within_P800_B256_variable:
-    #   max_tokens: 800
-    #   variable_size: True
-    #   panel_selection: random
-    #   panel_size_min: 800
-    #   panel_size_max: 800
-    within_P_Xenium_hIO_B256:
+
+#PERSONALIZED PANELS!
+    within_ZengGenePanel:
       max_tokens: 500
       variable_size: False
       panel_selection: preselected
       panel_filter_regex: "ZengGenePanel"
       panel_size_min: 500
       panel_size_max: 500
+    within_Lipid-Met500:
+      max_tokens: 500
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "Lipid-Metabolism-500_CP1275"
+      panel_size_min: 500
+      panel_size_max: 500
+    within_Aging-SFO:
+      max_tokens: 499
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "Aging-SFO_C2P2329"
+      panel_size_min: 499
+      panel_size_max: 499
+    within_ISD:
+      max_tokens: 948
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "ISD."
+      panel_size_min: 948
+      panel_size_max: 948
+    within_Border-DA-Olig:
+      max_tokens: 497
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "Border-DA-Oligo_CP1528s"
+      panel_size_min: 497
+      panel_size_max: 497
+    within_MouseBrain500:
+      max_tokens: 497
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "MouseBrain20220523_VA00274_500_genes"
+      panel_size_min: 497
+      panel_size_max: 497
+    within_Zhuang-ABCA-1:
+      max_tokens: 1122
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "Zhuang-ABCA-1"
+      panel_size_min: 1122
+      panel_size_max: 1122
+    within_Vizgen-Receptor:
+      max_tokens: 477
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "Vizgen_Receptor_panel"
+      panel_size_min: 477
+      panel_size_max: 477
+    within_Allen-Zeng:
+      max_tokens: 1129
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "Allen_Zeng"
+      panel_size_min: 1129
+      panel_size_max: 1129
+
+
+
 
 
 dataloader:
@@ -101,31 +144,80 @@ dataloader:
       pin_memory: False
       drop_last: True
       num_samples: 100000
-    # across_P800_B256:
-    #   within_group_sampling: null
-    #   batch_size: 256
-    #   shuffle: True
-    #   num_workers: 2
-    #   pin_memory: False
-    #   drop_last: True
-    #   num_samples: 100000
-    # within_donor_P800_B256:
-    #   within_group_sampling: "donor_id"
-    #   batch_size: 256
-    #   shuffle: True
-    #   num_workers: 2
-    #   pin_memory: False
-    #   drop_last: True
-    #   num_samples: 100000
-    # within_P800_B256_variable:
-    #   within_group_sampling: "dataset"
-    #   batch_size: 256
-    #   shuffle: True
-    #   num_workers: 2
-    #   pin_memory: False
-    #   drop_last: True
-    #   num_samples: 100000
-    within_P_Xenium_hIO_B256:
+
+    within_ZengGenePanel:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
+    within_Lipid-Met500:
+    
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
+
+    within_Aging-SFO:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
+
+    within_ISD:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
+
+    within_Border-DA-Olig:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
+
+    within_MouseBrain500:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
+
+    within_Zhuang-ABCA-1:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
+
+    within_Vizgen-Receptor:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
+
+    within_Allen-Zeng:
       within_group_sampling: "dataset"
       batch_size: 256
       shuffle: True
