@@ -21,16 +21,28 @@ panels_path = os.path.join(base_path, "done_panels")
 
 files = []
 file_names = []
+row_counts = {}
 
 # load CSV files properly
 for file in os.listdir(panels_path):
     if file.endswith(".csv"):
         full_path = os.path.join(panels_path, file)
-        files.append(pd.read_csv(full_path))
+        df = pd.read_csv(full_path)
+
+        files.append(df)
         file_names.append(file)
+        row_counts[file] = len(df)
+
+# print number of rows in each file
+print("=== ROW COUNTS ===")
+for name, count in row_counts.items():
+    print(f"{name}: {count} rows")
 
 # compare all pairs
 for i in range(len(files)):
     for j in range(i + 1, len(files)):
         count = confront(files[i], files[j])
         print(f"{file_names[i]} <-> {file_names[j]}: {count} common IDs")
+
+for i in range(len(files)):
+    print("")
