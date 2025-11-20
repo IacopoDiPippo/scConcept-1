@@ -164,7 +164,6 @@ def train() -> None:
     LIGHTNING_LOG_DIR = os.path.join(cfg.PATH.SCRATCH_ROOT, "lightning_logs")
     os.makedirs(LIGHTNING_LOG_DIR, exist_ok=True)
 
-    trainer_kwargs["default_root_dir"] = LIGHTNING_LOG_DIR
 
     trainer_kwargs = {
         'max_steps': cfg.model.training.max_steps,
@@ -185,6 +184,7 @@ def train() -> None:
             ModelCheckpoint(dirpath=os.path.join(CHECKPOINT_PATH, 'steps'), filename='{step}', every_n_train_steps=10000, monitor='train/loss', save_top_k=-1), # save a checkpoint every 10K steps
         ],
     }
+    trainer_kwargs["default_root_dir"] = LIGHTNING_LOG_DIR
     # Automatically pick the right strategy
     if int(cfg.model.training.devices) > 1 or int(cfg.model.training.num_nodes) > 1:
         strategy = DDPStrategy(find_unused_parameters=True)
