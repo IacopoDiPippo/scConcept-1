@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 
 # ---- SETTINGS ----
-adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/processed/ISD-1..h5ad"
+adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/processed/ISD-1.h5ad"
 output_dir = Path("/p/home/jusers/dipippo1/jureca/projects/scConcept-1/Panels/done_panels")       # where to save the panel
 panel_name = "ISD-1..csv"  # name of the CSV
 
