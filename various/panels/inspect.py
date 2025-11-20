@@ -1,9 +1,9 @@
-import scanpy as sc
+import anndata as ad
 
 adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/processed/ISD-1.h5ad"
 
 # Load the AnnData object
-adata = sc.read_h5ad(adata_path)
+adata = ad.read_h5ad(adata_path)
 
 # --- Basic structure ---
 print("=== AnnData Structure ===")
