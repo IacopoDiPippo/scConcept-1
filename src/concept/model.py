@@ -672,6 +672,14 @@ class BiEncoderContrastiveModel(BaseTransformerModel):
 
     def on_train_epoch_end(self):
         if self.global_rank == 0:
+            train_loss = self.trainer.callback_metrics.get("train/loss", None)
+            mlm_loss   = self.trainer.callback_metrics.get("train/loss_mlm", None)
+            cont_loss  = self.trainer.callback_metrics.get("train/loss_cont", None)
+
+            print(f"\n[EPOCH {self.current_epoch}] "
+                f"train/loss={train_loss:.4f} | "
+                f"mlm={mlm_loss:.4f} | "
+                f"contrastive={cont_loss:.4f}\n")
             # I dati sono liste di liste
             data = self.context_sizes['train']
 
