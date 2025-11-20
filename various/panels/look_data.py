@@ -4,8 +4,8 @@ import anndata as ad
 from pathlib import Path
 
 # === Paths ===
-DATA_DIR = Path("/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw")
-FILES = ["abc_atlas.h5ad", "Zeng.h5ad"]
+DATA_DIR = Path("/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/processed")
+FILES = ["ISD-1.h5ad", "Zhuang-ABCA-1.h5ad"]
 
 def summarize_adata(adata: ad.AnnData, name: str):
     print(f"\n📘 === Summary for {name} ===")
