@@ -1,51 +1,29 @@
 import pandas as pd
-import ast
+from mygene import MyGeneInfo
 
-# ==========================
-# 1. LOAD YOUR FILE
-# ==========================
+mg = MyGeneInfo()
 
-FILENAME = "gene.csv"   # <-- update this
-df = pd.read_csv(FILENAME)
+def symbol_to_geneid(symbol):
+    result = mg.query(symbol, scopes="symbol", fields="ensembl.gene", species="mouse")
+    if "hits" not in result or len(result["hits"]) == 0:
+        return None
+    ens = result["hits"][0].get("ensembl")
+    if isinstance(ens, dict):
+        return ens.get("gene")
+    if isinstance(ens, list):
+        return ens[0].get("gene")
+    return None
 
-# ==========================
-# 2. PARSE ID COLUMN SAFELY
-# ==========================
+# Read your file
+df = pd.read_csv("Vizgen_Gene List_mouse_brain_1000.csv")
 
-all_ids = []
+# The gene symbol is in the SECOND column:
+symbols = df["name"]
 
-for val in df["gene_identifier"]:
-    if pd.isna(val):
-        continue
-    
-    # CASE A: It's a single ID (normal string)
-    if isinstance(val, str) and not val.startswith("["):
-        all_ids.append(val)
-        continue
-    
-    # CASE B: It's a list stored as a string => convert using ast.literal_eval
-    try:
-        parsed = ast.literal_eval(val)
-        if isinstance(parsed, list):
-            for item in parsed:
-                if isinstance(item, str):
-                    all_ids.append(item)
-    except:
-        # fallback: add raw value
-        all_ids.append(str(val))
+# Convert symbols → Ensembl gene IDs
+gene_ids = symbols.apply(symbol_to_geneid)
 
-# ==========================
-# 3. REMOVE DUPLICATES
-# ==========================
+# Save output
+pd.DataFrame({"Ensembl_ID": gene_ids}).to_csv("Vizgen1000_geneIDs.csv", index=False)
 
-unique_ids = list(dict.fromkeys(all_ids))  # preserves order
-
-# ==========================
-# 4. SAVE OUTPUT
-# ==========================
-
-out_df = pd.DataFrame({"Ensembl_ID": unique_ids})
-OUTPUT = "Ensembl_IDs.csv"
-out_df.to_csv(OUTPUT, index=False)
-
-print(f"Extracted {len(unique_ids)} unique Ensembl IDs → saved to {OUTPUT}")
+print("DONE: Vizgen1000_geneIDs.csv created!")
