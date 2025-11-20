@@ -3,8 +3,8 @@ import pandas as pd
 from pathlib import Path
 
 # ---- SETTINGS ----
-adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad"
-output_dir = Path("/p/home/jusers/dipippo1/jureca/projects/scConcept-1/various/mouse")       # where to save the panel
+adata_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/abc_atlas.h5ad"
+output_dir = Path("/p/home/jusers/dipippo1/jureca/projects/scConcept-1/Panels/done_panels")       # where to save the panel
 panel_name = "ZengGenePanel.csv"  # name of the CSV
 
 print(f"🔍 Reading {adata_path} in backed mode (-r)...")
