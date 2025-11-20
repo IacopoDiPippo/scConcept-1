@@ -17,7 +17,7 @@ def confront(pd1, pd2):
 
 
 base_path = os.getcwd()
-panels_path = os.path.join(base_path, "done panels")
+panels_path = os.path.join(base_path, "done_panels")
 
 files = []
 file_names = []

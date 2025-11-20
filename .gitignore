@@ -152,7 +152,7 @@ dmypy.json
 .trained_models/
 *.out
 *.pdf
-#*.csv
+*.csv
 *.pt
 *.pth
 
