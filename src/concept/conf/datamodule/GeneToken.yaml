@@ -153,75 +153,74 @@ dataloader:
       pin_memory: False
       drop_last: True
       num_samples: 100000
-    within_Lipid-Met500:
-    
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
+# within_Lipid-Met500:
+#   within_group_sampling: "dataset"
+#   batch_size: 256
+#   shuffle: True
+#   num_workers: 2
+#   pin_memory: False
+#   drop_last: True
+#   num_samples: 100000
 
-    within_Aging-SFO:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
+# within_Aging-SFO:
+#   within_group_sampling: "dataset"
+#   batch_size: 256
+#   shuffle: True
+#   num_workers: 2
+#   pin_memory: False
+#   drop_last: True
+#   num_samples: 100000
 
-    within_ISD:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
+# within_ISD:
+#   within_group_sampling: "dataset"
+#   batch_size: 256
+#   shuffle: True
+#   num_workers: 2
+#   pin_memory: False
+#   drop_last: True
+#   num_samples: 100000
 
-    within_Border-DA-Olig:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
+# within_Border-DA-Olig:
+#   within_group_sampling: "dataset"
+#   batch_size: 256
+#   shuffle: True
+#   num_workers: 2
+#   pin_memory: False
+#   drop_last: True
+#   num_samples: 100000
 
-    within_MouseBrain500:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
+# within_MouseBrain500:
+#   within_group_sampling: "dataset"
+#   batch_size: 256
+#   shuffle: True
+#   num_workers: 2
+#   pin_memory: False
+#   drop_last: True
+#   num_samples: 100000
 
-    within_Zhuang-ABCA-1:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
+# within_Zhuang-ABCA-1:
+#   within_group_sampling: "dataset"
+#   batch_size: 256
+#   shuffle: True
+#   num_workers: 2
+#   pin_memory: False
+#   drop_last: True
+#   num_samples: 100000
 
-    within_Vizgen-Receptor:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
+# within_Vizgen-Receptor:
+#   within_group_sampling: "dataset"
+#   batch_size: 256
+#   shuffle: True
+#   num_workers: 2
+#   pin_memory: False
+#   drop_last: True
+#   num_samples: 100000
 
-    within_Allen-Zeng:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 2
-      pin_memory: False
-      drop_last: True
-      num_samples: 100000
+# within_Allen-Zeng:
+#   within_group_sampling: "dataset"
+#   batch_size: 256
+#   shuffle: True
+#   num_workers: 2
+#   pin_memory: False
+#   drop_last: True
+#   num_samples: 100000
