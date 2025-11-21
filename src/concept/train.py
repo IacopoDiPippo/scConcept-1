@@ -1,12 +1,18 @@
 import os
-os.environ["WANDB_MODE"] = "offline"   # absolute guarantee
-os.environ["WANDB_SILENT"] = "true"    # optional, suppress warnings
-import os
-# Dove mettere la cache blob (artifact leggeri interni)
-os.environ["WANDB_CACHE_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/cache"
 
-# Dove mettere i file media
+# --- W&B ---
+os.environ["WANDB_MODE"] = "offline"
+os.environ["WANDB_SILENT"] = "true"
+os.environ["WANDB_CACHE_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/cache"
 os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/media"
+
+# --- DDP / NCCL per JURECA ---
+os.environ["NCCL_IB_DISABLE"] = "1"       # disabilita InfiniBand se dà problemi
+os.environ["NCCL_SOCKET_IFNAME"] = "eth0" # forza interfaccia di rete
+os.environ["GLOO_SOCKET_IFNAME"] = "eth0"
+os.environ["MASTER_ADDR"] = "127.0.0.1"   # evita IPv6 / localhost.localdomain
+os.environ["MASTER_PORT"] = "29501"       # porta fissa (scegline una libera)
+
 import sys
 import shutil
 import filecmp
@@ -159,7 +165,7 @@ def train() -> None:
         CHECKPOINT_PATH = os.path.join(cfg.PATH.CHECKPOINT_ROOT, logger.experiment.id if cfg.wandb.enabled else 'dummy')
         if cfg.wandb.enabled:
             logger.experiment.config.update(OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
-        # print(OmegaConf.to_yaml(cfg))
+        print(OmegaConf.to_yaml(cfg))
 
     LIGHTNING_LOG_DIR = os.path.join(cfg.PATH.SCRATCH_ROOT, "lightning_logs")
     os.makedirs(LIGHTNING_LOG_DIR, exist_ok=True)
