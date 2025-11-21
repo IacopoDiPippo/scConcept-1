@@ -6,12 +6,11 @@ os.environ["WANDB_SILENT"] = "true"
 os.environ["WANDB_CACHE_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/cache"
 os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/media"
 
-# --- DDP / NCCL per JURECA ---
-os.environ["NCCL_IB_DISABLE"] = "1"       # disabilita InfiniBand se dà problemi
-os.environ["NCCL_SOCKET_IFNAME"] = "eth0" # forza interfaccia di rete
+os.environ["MASTER_ADDR"] = "127.0.0.1"
+os.environ["MASTER_PORT"] = "29501"
+os.environ["NCCL_IB_DISABLE"] = "1"
+os.environ["NCCL_SOCKET_IFNAME"] = "eth0"
 os.environ["GLOO_SOCKET_IFNAME"] = "eth0"
-os.environ["MASTER_ADDR"] = "127.0.0.1"   # evita IPv6 / localhost.localdomain
-os.environ["MASTER_PORT"] = "29501"       # porta fissa (scegline una libera)
 
 import sys
 import shutil
