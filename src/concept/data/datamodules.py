@@ -128,7 +128,7 @@ class AnnDataModule(L.LightningDataModule):
                     assert within_group_sampling == 'dataset', 'within_group_sampling must be dataset for AnnData objects'
                     # Use InMemoryCollection for AnnData objects
                     collection = InMemoryCollection(
-                        adata_list=split['val'],
+                        adata_list=adata_list,
                         obs_keys=columns,
                         layers_keys=['X'],
                         obsm_keys=precomp_embs_key,
