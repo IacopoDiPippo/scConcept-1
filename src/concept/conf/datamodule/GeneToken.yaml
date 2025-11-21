@@ -49,62 +49,62 @@ dataset:
       panel_filter_regex: "ZengGenePanel"
       panel_size_min: 500
       panel_size_max: 500
-    within_Lipid-Met500:
-      max_tokens: 500
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Lipid-Metabolism-500_CP1275"
-      panel_size_min: 500
-      panel_size_max: 500
-    within_Aging-SFO:
-      max_tokens: 499
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Aging-SFO_C2P2329"
-      panel_size_min: 499
-      panel_size_max: 499
-    within_ISD:
-      max_tokens: 948
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "ISD."
-      panel_size_min: 948
-      panel_size_max: 948
-    within_Border-DA-Olig:
-      max_tokens: 497
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Border-DA-Oligo_CP1528s"
-      panel_size_min: 497
-      panel_size_max: 497
-    within_MouseBrain500:
-      max_tokens: 497
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "MouseBrain20220523_VA00274_500_genes"
-      panel_size_min: 497
-      panel_size_max: 497
-    within_Zhuang-ABCA-1:
-      max_tokens: 1122
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Zhuang-ABCA-1"
-      panel_size_min: 1122
-      panel_size_max: 1122
-    within_Vizgen-Receptor:
-      max_tokens: 477
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Vizgen_Receptor_panel"
-      panel_size_min: 477
-      panel_size_max: 477
-    within_Allen-Zeng:
-      max_tokens: 1129
-      variable_size: False
-      panel_selection: preselected
-      panel_filter_regex: "Allen_Zeng"
-      panel_size_min: 1129
-      panel_size_max: 1129
+# within_Lipid-Met500:
+#   max_tokens: 500
+#   variable_size: False
+#   panel_selection: preselected
+#   panel_filter_regex: "Lipid-Metabolism-500_CP1275"
+#   panel_size_min: 500
+#   panel_size_max: 500
+# within_Aging-SFO:
+#   max_tokens: 499
+#   variable_size: False
+#   panel_selection: preselected
+#   panel_filter_regex: "Aging-SFO_C2P2329"
+#   panel_size_min: 499
+#   panel_size_max: 499
+# within_ISD:
+#   max_tokens: 948
+#   variable_size: False
+#   panel_selection: preselected
+#   panel_filter_regex: "ISD."
+#   panel_size_min: 948
+#   panel_size_max: 948
+# within_Border-DA-Olig:
+#   max_tokens: 497
+#   variable_size: False
+#   panel_selection: preselected
+#   panel_filter_regex: "Border-DA-Oligo_CP1528s"
+#   panel_size_min: 497
+#   panel_size_max: 497
+# within_MouseBrain500:
+#   max_tokens: 497
+#   variable_size: False
+#   panel_selection: preselected
+#   panel_filter_regex: "MouseBrain20220523_VA00274_500_genes"
+#   panel_size_min: 497
+#   panel_size_max: 497
+# within_Zhuang-ABCA-1:
+#   max_tokens: 1122
+#   variable_size: False
+#   panel_selection: preselected
+#   panel_filter_regex: "Zhuang-ABCA-1"
+#   panel_size_min: 1122
+#   panel_size_max: 1122
+# within_Vizgen-Receptor:
+#   max_tokens: 477
+#   variable_size: False
+#   panel_selection: preselected
+#   panel_filter_regex: "Vizgen_Receptor_panel"
+#   panel_size_min: 477
+#   panel_size_max: 477
+# within_Allen-Zeng:
+#   max_tokens: 1129
+#   variable_size: False
+#   panel_selection: preselected
+#   panel_filter_regex: "Allen_Zeng"
+#   panel_size_min: 1129
+#   panel_size_max: 1129
 
 
 
