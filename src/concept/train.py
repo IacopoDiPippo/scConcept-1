@@ -180,10 +180,11 @@ def train() -> None:
     
     if resume_from_checkpoint:
         ckpt_path = os.path.join(cfg.PATH.CHECKPOINT_ROOT, "c5yndzfg/epochs", "last.ckpt")
-        model = BiEncoderContrastiveModel.load_from_checkpoint(ckpt_path, **model_args, strict=False)
+        #model = BiEncoderContrastiveModel.load_from_checkpoint(ckpt_path, **model_args, strict=False)
     
     trainer.fit(model=model, 
-                datamodule = datamodule)
+                datamodule = datamodule,
+                ckpt_path=ckpt_path if resume_from_checkpoint else None)
 
     # if cfg.PATH.LOCAL_DIR is not None and 'persistent' not in cfg.PATH.LOCAL_DIR:
     #     print(f'Removing trianing local directory...')
