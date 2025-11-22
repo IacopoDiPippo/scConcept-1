@@ -174,6 +174,7 @@ def train() -> None:
     model = BiEncoderContrastiveModel(**model_args)
 
     if not resume_from_checkpoint and cfg.model.training.validate_before_training:
+        print("Validating model before training...")
         trainer.validate(model=model, 
                         datamodule=datamodule,
                         )
