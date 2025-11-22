@@ -178,7 +178,8 @@ def train() -> None:
         trainer.validate(model=model, 
                         datamodule=datamodule,
                         )
-    
+    print("#########################################################################################")
+    print(resume_from_checkpoint)
     if resume_from_checkpoint:
         ckpt_path = os.path.join(cfg.PATH.CHECKPOINT_ROOT, "c5yndzfg", "epochs", "last.ckpt")
 

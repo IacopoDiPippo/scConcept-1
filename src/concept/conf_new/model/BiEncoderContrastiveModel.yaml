@@ -20,7 +20,7 @@ pe_max_len: 5000
 input_encoding: "rank_encoding" # "value_encoding"
 loss_switch_step: 20000
 training:
-  resume_from_checkpoint: False
+  resume_from_checkpoint: True
   validate_before_training: True
   masking_rate: 0
   lr: 1e-4
