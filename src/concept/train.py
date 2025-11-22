@@ -45,6 +45,7 @@ def train() -> None:
     
     bash_cfg = OmegaConf.from_cli()
     resume_from_checkpoint = bash_cfg.pop("resume_from_checkpoint", False)
+    resume_from_checkpoint = True
     print(resume_from_checkpoint)
     def is_wandb_offline():
         return os.environ.get("WANDB_MODE", "").lower() == "offline"
