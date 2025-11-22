@@ -49,54 +49,11 @@ def train() -> None:
     def is_wandb_offline():
         return os.environ.get("WANDB_MODE", "").lower() == "offline"
 
-    if resume_from_checkpoint:
+    print("Loading config from YAML...")
+    print('overrides:', sys.argv[1:])
+    with initialize(version_base=None, config_path="./conf"):
+        cfg = compose(config_name="config", overrides=sys.argv[1:])
 
-        checkpoint_path = bash_cfg.pop("checkpoint")
-
-        print(f"Resuming from checkpoint: {checkpoint_path}")
-
-        # -------------------------------------------
-        # CASE 1: WANDB OFFLINE → Load config from checkpoint
-        # -------------------------------------------
-        if is_wandb_offline():
-            print("W&B is OFFLINE → loading config from checkpoint metadata")
-            ckpt = torch.load(checkpoint_path, map_location="cpu")
-
-            # The config is stored inside Lightning's checkpoint
-            if "hyper_parameters" in ckpt:
-                cfg = OmegaConf.create(ckpt["hyper_parameters"]["config"])
-            else:
-                raise RuntimeError(
-                    "Checkpoint does not contain embedded config. "
-                    "You must save config into checkpoints by passing it as hyperparams."
-                )
-
-            # merge additional CLI overrides
-            cfg = OmegaConf.merge(cfg, bash_cfg)
-            print(OmegaConf.to_yaml(cfg))
-        
-        # -------------------------------------------
-        # CASE 2: WANDB ONLINE → load config from W&B API
-        # -------------------------------------------
-        else:
-            print("W&B ONLINE → loading config from wandb cloud")
-
-            run_id = bash_cfg.pop("run_id")
-            wandb.login()
-            api = wandb.Api()
-            run = api.run(f'{bash_cfg.wandb.entity}/{bash_cfg.wandb.project}/{run_id}')
-            
-            cfg = DictConfig(run.config)
-            cfg = OmegaConf.merge(cfg, bash_cfg)
-            print(OmegaConf.to_yaml(cfg))
-
-    else:
-        print("Starting new training ...")
-        print('overrides:', sys.argv[1:])
-        with initialize(version_base=None, config_path="./conf"):
-            cfg = compose(config_name="config", overrides=sys.argv[1:])
-
-    
     dataset_path = cfg.PATH.ADATA_PATH
     if cfg.PATH.LOCAL_DIR is not None:
         local_dir = cfg.PATH.LOCAL_DIR
@@ -222,7 +179,7 @@ def train() -> None:
                         )
     
     if resume_from_checkpoint:
-        ckpt_path = os.path.join(cfg.PATH.CHECKPOINT_ROOT, run_id, checkpoint)
+        ckpt_path = os.path.join(cfg.PATH.CHECKPOINT_ROOT, "c5yndzfg/epochs", "last.ckpt")
         model = BiEncoderContrastiveModel.load_from_checkpoint(ckpt_path, **model_args, strict=False)
     
     trainer.fit(model=model, 
