@@ -179,7 +179,9 @@ def train() -> None:
                         )
     
     if resume_from_checkpoint:
-        ckpt_path = os.path.join(cfg.PATH.CHECKPOINT_ROOT, "c5yndzfg/epochs", "last.ckpt")
+        ckpt_path = os.path.join(cfg.PATH.CHECKPOINT_ROOT, "c5yndzfg", "epochs", "last.ckpt")
+
+        print("Resuming training from checkpoint:", ckpt_path)
         #model = BiEncoderContrastiveModel.load_from_checkpoint(ckpt_path, **model_args, strict=False)
     
     trainer.fit(model=model, 
