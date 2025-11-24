@@ -28,7 +28,7 @@ print("\nLoading checkpoint and tokenizer...")
 
 ckpt_path = os.path.join(
     cfg.PATH.CHECKPOINT_ROOT,
-    cfg.wandb.run_name if cfg.wandb.enabled else "dummy",
+    "xtpijc3k",
     "epochs",
     "last.ckpt"
 )
@@ -60,6 +60,7 @@ model.cuda()
 print("\nBuilding inference AnnDataModule...")
 
 adata_file = cfg.PATH.ADATA_PATH     # <--- YOUR .h5ad file
+adata_file = os.path.join(adata_file, "Zeng.h5ad")
 dataset_path = os.path.dirname(adata_file)
 adata_name = os.path.basename(adata_file)
 
