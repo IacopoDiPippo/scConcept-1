@@ -243,5 +243,5 @@ class AnnDataModule(L.LightningDataModule):
         print(f'Creating test dataloader by {len(dataloader)} batches of size {dataloader_kwargs["batch_size"]} over {len(self.test_dataset)} samples; sum of indices: {sum(self.test_dataset.collection.indices)}')
         return dataloader
     
-    def test_dataloader(self):
+    def predict_dataloader(self):
         return self.val_dataloader()
