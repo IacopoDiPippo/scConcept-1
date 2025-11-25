@@ -245,3 +245,65 @@ class AnnDataModule(L.LightningDataModule):
     
     def predict_dataloader(self):
         return self.val_dataloader()
+    
+
+
+
+
+
+
+
+import os
+import anndata as ad
+from torch.utils.data import Dataset, DataLoader
+import torch
+import numpy as np
+
+
+class InferenceDataset(Dataset):
+    def __init__(self, adata, tokenizer):
+        self.adata = adata
+        self.X = adata.X.toarray() if not isinstance(adata.X, np.ndarray) else adata.X
+        self.tokenizer = tokenizer
+
+        # map gene names to integer IDs
+        self.gene_ids = np.array([tokenizer.gene2id[g] for g in adata.var_names])
+
+    def __len__(self):
+        return self.adata.n_obs
+
+    def __getitem__(self, idx):
+        values = torch.tensor(self.X[idx], dtype=torch.float32)
+
+        # Keep full gene order, no sampling
+        tokens = torch.tensor(self.gene_ids, dtype=torch.long)
+
+        pad_mask = torch.zeros_like(tokens, dtype=torch.bool)
+
+        return {
+            "tokens": tokens,
+            "values": values,
+            "src_key_padding_mask": pad_mask
+        }
+
+
+class InferenceDataModule:
+    def __init__(self, h5ad_path, tokenizer, batch_size=128, num_workers=4):
+        self.h5ad_path = h5ad_path
+        self.tokenizer = tokenizer
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+    def setup(self, stage=None):
+        adata = ad.read_h5ad(self.h5ad_path)
+        self.dataset = InferenceDataset(adata, self.tokenizer)
+        self.adata = adata  # store to match outputs later
+
+    def predict_dataloader(self):
+        return DataLoader(
+            self.dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=True
+        )
