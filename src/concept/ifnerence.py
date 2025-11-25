@@ -28,9 +28,7 @@ from model import BiEncoderContrastiveModel  # <-- METTI QUI IL TUO PATH
 
 from lamin_dataloader.dataset import GeneIdTokenizer
 
-from data.datamodules import AnnDataModule
-
-
+from data.datamodules import AnnDataModule, InferenceAnnDataModule
 
 
 def main():
@@ -48,19 +46,16 @@ def main():
     # ----------------------------
     # 2. Force INFERENCE mode
     # ----------------------------
-    # Questa è l’unica cosa che CI SERVE.
-    cfg.datamodule.collate.split_input = False   # 🔥 Single view, niente augmentation
-
-    # NIENTE altre modifiche → usa EXACT training pipeline.
+    cfg.datamodule.collate.split_input = False   # 🔥 disable 2-view augmentation
 
     # ----------------------------
-    # 3. Carica tokenizer
+    # 3. Load tokenizer
     # ----------------------------
     gene_mapping = pd.read_pickle(cfg.PATH.gene_mapping_path).to_dict()
     tokenizer = GeneIdTokenizer(gene_mapping)
 
     # ----------------------------
-    # 4. Path val file (Zeng.h5ad)
+    # 4. Path to Zeng.h5ad
     # ----------------------------
     val_files = cfg.PATH.SPLIT["val"]
     if isinstance(val_files, str):
@@ -71,16 +66,25 @@ def main():
     print(f"Inference on: {h5ad_path}")
 
     # ----------------------------
-    # 5. Costruisci DataModule esattamente come train.py
+    # 5. Build inference DataModule
     # ----------------------------
-    datamodule = AnnDataModule(cfg)
-    datamodule.setup()
+    print("Building inference datamodule...")
 
-    # Usa il loader "same" della validation
-    val_loader = datamodule.val_dataloader()["same"]
+    infer_dm = InferenceAnnDataModule(
+        adata_path=h5ad_path,
+        tokenizer=tokenizer,
+        columns=cfg.columns,
+        normalization=cfg.normalization,
+        max_tokens=cfg.datamodule.dataset.train.max_tokens,
+        batch_size=256,
+        num_workers=4,
+    )
+
+    infer_dm.setup()
+    val_loader = infer_dm.predict_dataloader()
 
     # ----------------------------
-    # 6. Load the model
+    # 6. Load trained model
     # ----------------------------
     ckpt_path = os.path.join(
         cfg.PATH.CHECKPOINT_ROOT,
@@ -104,17 +108,18 @@ def main():
     model.eval()
 
     # ----------------------------
-    # 7. Predict
+    # 7. Predict embeddings
     # ----------------------------
     trainer = L.Trainer(accelerator="gpu", devices=1, logger=False)
     print("\nRunning prediction...")
+
     preds = trainer.predict(model, dataloaders=val_loader)
 
     cls_emb = torch.cat([p["cls_cell_emb"] for p in preds], dim=0).cpu().numpy()
     mean_emb = torch.cat([p["mean_cell_emb"] for p in preds], dim=0).cpu().numpy()
 
     # ----------------------------
-    # 8. Save outputs
+    # 8. Save to AnnData
     # ----------------------------
     adata = ad.read_h5ad(h5ad_path)
 

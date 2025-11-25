@@ -250,54 +250,84 @@ class AnnDataModule(L.LightningDataModule):
 
 
 
+class InferenceAnnDataModule(L.LightningDataModule):
 
-
-import anndata as ad
-import numpy as np
-import torch
-from torch.utils.data import Dataset, DataLoader
-
-
-class InferenceDataset(Dataset):
-    def __init__(self, adata, tokenizer):
-        self.adata = adata
-        self.X = adata.X  # può essere sparse o denso
+    def __init__(
+        self,
+        adata_path: str,
+        tokenizer,
+        columns,
+        normalization="log1p",
+        max_tokens: int = 5000,      # should match training
+        batch_size: int = 256,
+        num_workers: int = 4,
+    ):
+        super().__init__()
+        self.adata_path = adata_path
         self.tokenizer = tokenizer
+        self.columns = columns
+        self.normalization = normalization
+        self.max_tokens = max_tokens
+        self.batch_size = batch_size
+        self.num_workers = num_workers
 
-        # Usa ESATTAMENTE lo stesso meccanismo visto in Collate:
-        # self.tokenizer.encode(...)
-        gene_names = list(adata.var_names)
-        token_ids = self.tokenizer.encode(gene_names)  # <-- questa esiste di sicuro (usata in Collate)
-        self.tokens = torch.tensor(token_ids, dtype=torch.long)
+    # -------------------------
+    # Setup
+    # -------------------------
+    def setup(self, stage=None):
 
-    def __len__(self):
-        return self.adata.n_obs
+        print(f"📂 Loading AnnData for inference: {self.adata_path}")
+        adata = ad.read_h5ad(self.adata_path)
 
-    def __getitem__(self, idx):
-        row = self.X[idx]
+        # -------------------------
+        # Wrap AnnData like training
+        # -------------------------
+        self.collection = InMemoryCollection(
+            adata_list=[adata],
+            obs_keys=self.columns,
+            layers_keys=["X"],
+            obsm_keys=None,
+            keys_to_cache=[],
+        )
 
-        # gestisce sia sparse che denso
-        if hasattr(row, "toarray"):
-            row = row.toarray().ravel()
-        else:
-            row = np.asarray(row).ravel()
+        # -------------------------
+        # TokenizedDataset EXACTLY as in training
+        # -------------------------
+        self.dataset = TokenizedDataset(
+            collection=self.collection,
+            tokenizer=self.tokenizer,
+            normalization=self.normalization,
+            obs_keys=self.columns,
+            obsm_key=None,
+        )
 
-        values = torch.tensor(row, dtype=torch.float32)
+        # -------------------------
+        # Collate WITHOUT augmentation
+        # -------------------------
+        self.collate_fn = Collate(
+            tokenizer=self.tokenizer,
+            panels_path=None,           # disable panel logic entirely
+            max_tokens=self.max_tokens,
+            split_input=False,          # 🔥 KEY: single-view inference
+            gene_sampling_strategy="top-nonzero",
+            panel_selection="random",   # unused because split_input=False
+            panel_filter_regex=".*",
+            model_speed_sanity_check=False,
+        )
 
-        return {
-            "tokens": self.tokens,   # stessa sequenza di geni per tutte le celle
-            "values": values,        # valori diversi per cella
-        }
+    # -------------------------
+    # Predict loader
+    # -------------------------
+    def predict_dataloader(self):
 
+        sampler = SequentialSampler(self.dataset)
 
-def make_inference_dataloader(h5ad_path, tokenizer, batch_size=256, num_workers=4):
-    adata = ad.read_h5ad(h5ad_path)
-    dataset = InferenceDataset(adata, tokenizer)
-    loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True,
-    )
-    return loader, adata
+        return DataLoader(
+            self.dataset,
+            sampler=sampler,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            drop_last=False,
+            pin_memory=False,
+            collate_fn=self.collate_fn,
+        )
