@@ -37,6 +37,7 @@ tokenizer = GeneIdTokenizer(gene_mapping)
 
 # IMPORTANT: this must be a SINGLE .h5ad file, not a directory
 adata_file = cfg.PATH.ADATA_PATH
+adata_file = os.path.join(adata_file, "Zeng.h5ad")  # in case of relative path
 if os.path.isdir(adata_file):
     raise ValueError(
         f"cfg.PATH.ADATA_PATH points to a DIRECTORY:\n  {adata_file}\n"
