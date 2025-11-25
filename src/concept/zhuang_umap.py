@@ -141,7 +141,7 @@ neighbors_umap(adata, use_rep="concept_cls_embedding") # use concept embeddingor
 # ---------------------------------------------------
 
 title = "Zhuang UMAP (concept embedding)"
-out_png = os.path.join(os.getcwd(), "zhuang_umap_concept.png")
+out_png = os.path.join(os.getcwd(), "zhuang_umap_concept_cls.png")
 
 plot_umap(
     adata,
