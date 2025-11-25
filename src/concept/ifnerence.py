@@ -65,7 +65,7 @@ adata_name = os.path.basename(adata_file)
 
 datamodule = AnnDataModule(
     dataset_path=dataset_path,
-    split={"val": [adata_name]},              # use your new dataset
+    split=cfg.PATH.SPLIT,              # use your new dataset
     panels_path=cfg.PATH.PANELS_PATH,
     columns=cfg.datamodule.columns,
     precomp_embs_key=None,
