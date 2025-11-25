@@ -68,8 +68,8 @@ def main():
     infer_dm = InferenceAnnDataModule(
         adata_path=h5ad_path,
         tokenizer=tokenizer,
-        columns=cfg.columns,
-        normalization=cfg.normalization,
+        columns=cfg.datamodule.columns,
+        normalization=cfg.datamodule.normalization,
         max_tokens=cfg.datamodule.dataset.train.max_tokens,
         batch_size=256,
         num_workers=4,
