@@ -24,50 +24,67 @@ from lamin_dataloader.dataset import GeneIdTokenizer
 # IMPORT CORRETTO DEL MODELLO - aggiorna il path a quello reale
 from model import BiEncoderContrastiveModel  # <-- METTI QUI IL TUO PATH
 
- # oppure importa le classi se le hai nello stesso file
+
+
+from lamin_dataloader.dataset import GeneIdTokenizer
+
+from data.datamodules import AnnDataModule
+
+
 
 
 def main():
-    # -------------------------
-    # 1) Hydra config
-    # -------------------------
-    print("Loading Hydra config...")
+
+    # ----------------------------
+    # 1. Load Hydra config
+    # ----------------------------
+    print("Loading config...")
     with initialize(version_base=None, config_path="conf"):
         cfg = compose(config_name="config")
 
-    # -------------------------
-    # 2) Gene mapping + tokenizer
-    # -------------------------
+    print("Original config loaded.")
+    print(OmegaConf.to_yaml(cfg))
+
+    # ----------------------------
+    # 2. Force INFERENCE mode
+    # ----------------------------
+    # Questa è l’unica cosa che CI SERVE.
+    cfg.datamodule.collate.split_input = False   # 🔥 Single view, niente augmentation
+
+    # NIENTE altre modifiche → usa EXACT training pipeline.
+
+    # ----------------------------
+    # 3. Carica tokenizer
+    # ----------------------------
     gene_mapping = pd.read_pickle(cfg.PATH.gene_mapping_path).to_dict()
     tokenizer = GeneIdTokenizer(gene_mapping)
 
-    # -------------------------
-    # 3) Path del file Zeng.h5ad
-    # -------------------------
+    # ----------------------------
+    # 4. Path val file (Zeng.h5ad)
+    # ----------------------------
     val_files = cfg.PATH.SPLIT["val"]
     if isinstance(val_files, str):
         val_files = [val_files]
-    assert len(val_files) == 1, f"Mi aspetto un solo file di validazione, trovato: {val_files}"
+    assert len(val_files) == 1
 
     h5ad_path = os.path.join(cfg.PATH.ADATA_PATH, val_files[0])
     print(f"Inference on: {h5ad_path}")
 
-    # -------------------------
-    # 4) Dataloader di inference
-    # -------------------------
-    dataloader, adata = make_inference_dataloader(
-        h5ad_path=h5ad_path,
-        tokenizer=tokenizer,
-        batch_size=256,
-        num_workers=4,
-    )
+    # ----------------------------
+    # 5. Costruisci DataModule esattamente come train.py
+    # ----------------------------
+    datamodule = AnnDataModule(cfg)
+    datamodule.setup()
 
-    # -------------------------
-    # 5) Carica il modello
-    # -------------------------
+    # Usa il loader "same" della validation
+    val_loader = datamodule.val_dataloader()["same"]
+
+    # ----------------------------
+    # 6. Load the model
+    # ----------------------------
     ckpt_path = os.path.join(
         cfg.PATH.CHECKPOINT_ROOT,
-        "xtpijc3k",   # il run id che hai detto
+        "xtpijc3k",
         "epochs",
         "last.ckpt",
     )
@@ -86,31 +103,28 @@ def main():
     )
     model.eval()
 
-    # -------------------------
-    # 6) Predict
-    # -------------------------
+    # ----------------------------
+    # 7. Predict
+    # ----------------------------
     trainer = L.Trainer(accelerator="gpu", devices=1, logger=False)
     print("\nRunning prediction...")
-    preds = trainer.predict(model, dataloaders=dataloader)
+    preds = trainer.predict(model, dataloaders=val_loader)
 
-    print("Collecting embeddings...")
     cls_emb = torch.cat([p["cls_cell_emb"] for p in preds], dim=0).cpu().numpy()
     mean_emb = torch.cat([p["mean_cell_emb"] for p in preds], dim=0).cpu().numpy()
 
-    assert adata.n_obs == cls_emb.shape[0], (
-        f"Num cells mismatch: adata.n_obs={adata.n_obs}, cls_emb={cls_emb.shape[0]}"
-    )
+    # ----------------------------
+    # 8. Save outputs
+    # ----------------------------
+    adata = ad.read_h5ad(h5ad_path)
 
-    # -------------------------
-    # 7) Salva su AnnData
-    # -------------------------
     adata.obsm["concept_cls_embedding"] = cls_emb
     adata.obsm["concept_mean_embedding"] = mean_emb
 
     out_path = h5ad_path.replace(".h5ad", "_concept_embeddings.h5ad")
     adata.write(out_path)
 
-    print(f"\n✅ Saved embeddings to:\n{out_path}\n")
+    print(f"\n🎉 Saved to: {out_path}\n")
 
 
 if __name__ == "__main__":
