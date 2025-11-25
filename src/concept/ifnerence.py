@@ -42,10 +42,6 @@ def main():
     print("Original config loaded.")
     print(OmegaConf.to_yaml(cfg))
 
-    # ----------------------------
-    # 2. Force INFERENCE mode
-    # ----------------------------
-    cfg.datamodule.collate.split_input = False   # 🔥 disable 2-view augmentation
 
     # ----------------------------
     # 3. Load tokenizer
