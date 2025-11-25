@@ -67,7 +67,7 @@ sanity_check(adata)
 # ---------------------------------------------------
 
 # The index of your adata is in .obs["cell_label"]
-adata.obs["cell_id"] = adata.obs["cell_label"].astype(str)
+adata.obs["cell_id"] = adata.obs.index.astype(str)
 
 # ---------------------------------------------------
 # Subsample
