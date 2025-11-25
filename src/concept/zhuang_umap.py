@@ -29,10 +29,15 @@ def sanity_check(adata, color=None):
 
 
 def neighbors_umap(adata, use_rep=None):
-    print("PP Neighbors…")
-    sc.pp.neighbors(adata, use_rep=use_rep)
+    print("Running PCA on concept embeddings…")
+    sc.pp.pca(adata, use_rep="concept_mean_embedding", n_comps=50)
+
+    print("PP Neighbors on PCA…")
+    sc.pp.neighbors(adata, use_rep="X_pca")
+
     print("Computing UMAP…")
     sc.tl.umap(adata, min_dist=0.3, random_state=0)
+
 
 
 def plot_umap(adata, color, palette=None, title=None, out_png=None):
@@ -141,7 +146,7 @@ neighbors_umap(adata, use_rep="concept_cls_embedding") # use concept embeddingor
 # ---------------------------------------------------
 
 title = "Zhuang UMAP (concept embedding)"
-out_png = os.path.join(os.getcwd(), "zhuang_umap_concept_cls.png")
+out_png = os.path.join(os.getcwd(), "zhuang_umap_concept_cls_pca.png")
 
 plot_umap(
     adata,
