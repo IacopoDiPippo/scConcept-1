@@ -7,7 +7,7 @@ import torch
 import anndata as ad
 import numpy as np
 import torch.distributed as dist
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from lamin_dataloader.dataset import TokenizedDataset, Tokenizer
 from concept.data.collate import Collate
 from concept.data.samplers import WithinGroupSampler
