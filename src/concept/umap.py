@@ -2,6 +2,30 @@ import scanpy as sc
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+def sanity_check(adata, color):
+    print("\n======================")
+    print("🔍   UMAP SANITY CHECK")
+    print("======================")
+
+    print(f"Number of cells: {adata.n_obs:,}")
+    print(f"Number of features: {adata.n_vars:,}")
+
+    # Count missing labels
+    missing = adata.obs[color].isna().sum()
+    print(f"Missing labels for '{color}': {missing:,}")
+
+    # Show unique categories
+    print("\nUnique categories found:")
+    print(adata.obs[color].unique())
+
+    # Check representation existence
+    if "X_umap" in adata.obsm:
+        print("\nUMAP coordinates shape:", adata.obsm["X_umap"].shape)
+    else:
+        print("\n⚠️  WARNING: No UMAP coordinates found (X_umap missing).")
+
+    print("======================\n")
+
 
 # -----------------------------------------
 # UMAP & Plot helpers
@@ -82,11 +106,29 @@ print(f"📂 Loading: {adata_path}")
 adata = sc.read(adata_path)
 
 # -----------------------------------------
+# 0. Sanity check BEFORE merging annotations
+# -----------------------------------------
+print("🧪 Sanity check BEFORE annotation merge:")
+print("obs columns:", adata.obs.columns.tolist())
+print("shape:", adata.shape)
+print("obsm keys:", adata.obsm.keys())
+
+# You must pick a column that already exists
+# Example: show distribution of donor or subclass
+if "subclass" in adata.obs:
+    sanity_check(adata, color="subclass")
+else:
+    print("⚠️ 'subclass' not found in obs — skipping pre-merge plot.")
+
+
+# -----------------------------------------
 # Attach annotations
 # (Change to your actual annotation file path)
 # -----------------------------------------
 annotations_file = "/p/project1/hai_fzj_bda/salg1/cellseg-benchmark/data_dir/samples/zhuang/results/merfish/cell_type_annotation/adata_obs_annotated.csv"
 ann = pd.read_csv(annotations_file)
+
+
 
 adata.obs["cell_id"] = adata.obs.index
 
@@ -97,8 +139,15 @@ adata.obs = adata.obs.merge(
 )
 
 print("🔍 Annotations merged.")
+print("Unique cell types:", adata.obs["cell_type_mmc_raw"].nunique())
 
 
+# -----------------------------------------
+# 2. Sanity check AFTER merging
+# -----------------------------------------
+print("🧪 Sanity check AFTER annotation merge (cell_type_mmc_raw):")
+
+sanity_check(adata, color="cell_type_mmc_raw")
 # -----------------------------------------
 # Compute UMAP on concept embedding
 # -----------------------------------------
