@@ -9,7 +9,6 @@ from omegaconf import OmegaConf
 
 from model import BiEncoderContrastiveModel
 from lamin_dataloader.dataset import GeneIdTokenizer
-from concept.data.datamodules import InferenceDataset, make_inference_dataloader
 import os
 import torch
 import lightning as L
