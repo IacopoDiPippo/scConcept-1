@@ -28,16 +28,23 @@ def sanity_check(adata, color=None):
     print("======================\n")
 
 
-def neighbors_umap(adata, use_rep=None):
-    adata.X = adata.obsm[use_rep] 
-    print(f"Running PCA on {use_rep}…")
-    sc.pp.pca(adata, n_comps=50, svd_solver="arpack")  # creates adata.obsm["X_pca"]
+def neighbors_umap(adata, use_rep="concept_mean_embedding"):
+    emb = adata.obsm[use_rep]      # shape: (n_cells, 128)
 
-    print("PP Neighbors on PCA…")
-    sc.pp.neighbors(adata, use_rep="X_pca")
+    # 1) Run PCA on the embedding directly
+    print(f"Running PCA on {use_rep} …")
+    pca = sc.tl.pca(emb, n_comps=50, svd_solver="arpack", copy=True)
+    
+    # Store PCA result in adata.obsm
+    adata.obsm["X_pca_emb"] = pca
+
+    # 2) Neighbors + UMAP on PCA of embedding
+    print("PP Neighbors on PCA of embedding…")
+    sc.pp.neighbors(adata, use_rep="X_pca_emb")
 
     print("Computing UMAP…")
     sc.tl.umap(adata, min_dist=0.3, random_state=0)
+
 
 
     """print("PP Neighbors on PCA…")
