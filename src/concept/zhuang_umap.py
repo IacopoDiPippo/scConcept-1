@@ -154,14 +154,14 @@ sanity_check(adata, color="cell_type")
 # Compute UMAP on concept embedding
 # ---------------------------------------------------
 
-neighbors_umap(adata, use_rep="concept_cls_embedding") # use concept embeddingor or "concept_mean_embedding"
+neighbors_umap(adata, use_rep="concept_mean_embedding") # use concept embeddingor or "concept_mean_embedding"
 
 # ---------------------------------------------------
 # Plot
 # ---------------------------------------------------
 
 title = "Zhuang UMAP (concept embedding)"
-out_png = os.path.join(os.getcwd(), "zhuang_umap_concept_cls_pca.png")
+out_png = os.path.join(os.getcwd(), "zhuang_umap_concept_mean_pca.png")
 
 plot_umap(
     adata,
