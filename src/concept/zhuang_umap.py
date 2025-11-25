@@ -52,6 +52,31 @@ def plot_umap(adata, color, palette=None, title=None, out_png=None):
         print(f"Saved: {out_png}")
 
 
+cell_type_palette = {'ABCs': '#023fa5',
+ 'Astrocytes': '#7d87b9',
+ 'Astroependymal': '#bec1d4',
+ 'BAMs': '#d6bcc0',
+ 'Bergmann': '#bb7784',
+ 'Choroid-Plexus': '#8e063b',
+ 'ECs': '#4a6fe3',
+ 'Ependymal': '#8595e1',
+ 'Immune-Other': '#b5bbe3',
+ 'Microglia': '#e6afb9',
+ 'Neurons-Dopa': '#e07b91',
+ 'Neurons-Gaba': '#d33f6a',
+ 'Neurons-Glut': '#11c638',
+ 'Neurons-Glyc-Gaba': '#8dd593',
+ 'Neurons-Granule-Immature': '#c6dec7',
+ 'Neurons-Other': '#ead3c6',
+ 'OECs': '#f0b98d',
+ 'OPCs': '#ef9708',
+ 'Oligodendrocytes': '#0fcfc0',
+ 'Pericytes': '#9cded6',
+ 'SMCs': '#d5eae7',
+ 'Tanycytes': '#f3e1eb',
+ 'Undefined': '#f6c4e1',
+ 'VLMCs': '#f79cd4'}
+
 # ---------------------------------------------------
 # Load Zhuang embeddings
 # ---------------------------------------------------
@@ -109,7 +134,7 @@ sanity_check(adata, color="cell_type")
 # Compute UMAP on concept embedding
 # ---------------------------------------------------
 
-neighbors_umap(adata, use_rep="concept_mean_embedding")
+neighbors_umap(adata, use_rep="concept_cls_embedding") # use concept embeddingor or "concept_mean_embedding"
 
 # ---------------------------------------------------
 # Plot
@@ -122,7 +147,7 @@ plot_umap(
     adata,
     color="cell_type",
     title=title,
-    palette=None,  # add your palette if you want
+    palette=cell_type_palette,  # add your palette if you want
     out_png=out_png
 )
 
