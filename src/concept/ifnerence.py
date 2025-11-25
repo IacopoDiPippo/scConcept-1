@@ -60,13 +60,12 @@ model.cuda()
 print("\nBuilding inference AnnDataModule...")
 
 adata_file = cfg.PATH.ADATA_PATH     # <--- YOUR .h5ad file
-adata_file = os.path.join(adata_file, "Zeng.h5ad")
 dataset_path = os.path.dirname(adata_file)
 adata_name = os.path.basename(adata_file)
 
 datamodule = AnnDataModule(
     dataset_path=dataset_path,
-    split={"train": [adata_name]},              # use your new dataset
+    split={"val": [adata_name]},              # use your new dataset
     panels_path=cfg.PATH.PANELS_PATH,
     columns=cfg.datamodule.columns,
     precomp_embs_key=None,
