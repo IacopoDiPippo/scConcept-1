@@ -1,7 +1,7 @@
 defaults:
   - model: BiEncoderContrastiveModel
   - datamodule: GeneToken
-  - split: mouse_test
+  - split: split_mouse
   - _self_
 
 wandb:
