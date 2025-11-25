@@ -59,9 +59,8 @@ model.cuda()
 # ---------------------------
 print("\nBuilding inference AnnDataModule...")
 
-adata_file = cfg.PATH.ADATA_PATH     # <--- YOUR .h5ad file
-dataset_path = os.path.dirname(adata_file)
-adata_name = os.path.basename(adata_file)
+dataset_path = cfg.PATH.ADATA_PATH     # <--- YOUR .h5ad file
+
 
 datamodule = AnnDataModule(
     dataset_path=dataset_path,
