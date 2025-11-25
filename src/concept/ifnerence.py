@@ -22,9 +22,9 @@ from omegaconf import OmegaConf
 from lamin_dataloader.dataset import GeneIdTokenizer
 
 # IMPORT CORRETTO DEL MODELLO - aggiorna il path a quello reale
-from concept.models.bi_encoder_contrastive import BiEncoderContrastiveModel  # <-- METTI QUI IL TUO PATH
+from model import BiEncoderContrastiveModel  # <-- METTI QUI IL TUO PATH
 
-from inference_dataset import make_inference_dataloader  # oppure importa le classi se le hai nello stesso file
+ # oppure importa le classi se le hai nello stesso file
 
 
 def main():
