@@ -31,7 +31,7 @@ from data.datamodules import AnnDataModule, InferenceAnnDataModule
 
 
 def main():
-
+    torch.set_float32_matmul_precision("high")
     # ----------------------------
     # 1. Load Hydra config
     # ----------------------------
@@ -105,7 +105,7 @@ def main():
     # ----------------------------
     # 7. Predict embeddings
     # ----------------------------
-    trainer = L.Trainer(accelerator="gpu", devices=1, logger=False)
+    trainer = L.Trainer(accelerator="gpu", devices=1, precision="16-mixed", logger=False)
     print("\nRunning prediction...")
 
     preds = trainer.predict(model, dataloaders=val_loader)
