@@ -58,6 +58,7 @@ def main():
     assert len(val_files) == 1
 
     h5ad_path = os.path.join(cfg.PATH.ADATA_PATH, val_files[0])
+    h5ad_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/processed/ISD-1.h5ad"
     print(f"Inference on: {h5ad_path}")
 
     # ----------------------------
