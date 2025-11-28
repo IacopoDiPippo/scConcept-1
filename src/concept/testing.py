@@ -37,7 +37,7 @@ tokenizer = GeneIdTokenizer(gene_mapping)
 
 # IMPORTANT: this must be a SINGLE .h5ad file, not a directory
 adata_file = cfg.PATH.ADATA_PATH
-adata_file = os.path.join(adata_file, "Zeng.h5ad")  # in case of relative path
+adata_file = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/processed/ISD-1.h5ad" # in case of relative path
 if os.path.isdir(adata_file):
     raise ValueError(
         f"cfg.PATH.ADATA_PATH points to a DIRECTORY:\n  {adata_file}\n"
@@ -135,7 +135,8 @@ for i in range(adata.n_obs):
         values_1d = x[idxs]
 
         tokens = torch.tensor(tokens_1d, device=model.device, dtype=torch.long).unsqueeze(0)
-        values = torch.tensor(values_1d, device=model.device, dtype=torch.float32).unsqueeze(0)
+        values = torch.tensor(values_1d, device=model.device, dtype=torch.bfloat16).unsqueeze(0)
+
 
     # No padding mask (mask_padding = False in your config)
     padding_mask = torch.zeros_like(tokens, dtype=torch.bool, device=model.device)
