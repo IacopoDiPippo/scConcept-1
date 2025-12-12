@@ -69,7 +69,6 @@ instance/
 .webassets-cache
 
 # Scrapy stuff:
-.scrapy
 
 # Sphinx documentation
 docs/_build/
@@ -152,7 +151,7 @@ dmypy.json
 .trained_models/
 *.out
 *.pdf
-*.csv
+
 *.pt
 *.pth
 
