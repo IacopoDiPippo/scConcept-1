@@ -58,7 +58,52 @@ def main():
     assert len(val_files) == 1
 
     h5ad_path = os.path.join(cfg.PATH.ADATA_PATH, val_files[0])
+    h5ad_path = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/processed/ISD-1.h5ad"
     print(f"Inference on: {h5ad_path}")
+    cfg.datamodule.columns = []
+    # ----------------------------
+    # 4b. PREPROCESS: convert gene symbols → Ensembl IDs
+    # ----------------------------
+    print("Loading AnnData for preprocessing...")
+    adata_raw = ad.read_h5ad(h5ad_path)
+    
+    print(f"Found {adata_raw.n_vars} gene symbols.")
+    
+    # ----------------------------
+    # Load LOCAL precomputed mapping
+    # ----------------------------
+    mapping_path = "/p/home/jusers/dipippo1/jureca/projects/scConcept-1/Panels/done_panels/ISD2.csv"
+    print(f"Loading local Ensembl mapping: {mapping_path}")
+    
+    ens_map = pd.read_csv(mapping_path)
+    
+    if len(ens_map) != adata_raw.n_vars:
+        raise ValueError("Mapping rows do NOT match number of genes in AnnData!")
+    
+    # Assign Ensembl IDs
+    adata_raw.var["ensembl_id"] = ens_map["Ensembl_ID"].values
+    adata_raw.var_names = adata_raw.var["ensembl_id"].astype(str)  # Set index
+    
+    # Remove unmapped
+    missing = (adata_raw.var_names == "nan").sum() + adata_raw.var_names.isna().sum()
+    if missing > 0:
+        print(f"⚠️ {missing} genes unmapped — removing them.")
+        keep = ~(adata_raw.var_names.isna() | (adata_raw.var_names == "nan"))
+        adata_raw = adata_raw[:, keep].copy()
+    
+    print(f"Final genes after mapping: {adata_raw.n_vars}")
+    
+    # Remove duplicate column to satisfy H5AD writing rules
+    if "ensembl_id" in adata_raw.var.columns:
+        del adata_raw.var["ensembl_id"]
+    
+    mapped_h5ad_path = h5ad_path.replace(".h5ad", "_ENSEMBL.h5ad")
+    adata_raw.write(mapped_h5ad_path)
+    
+    print(f"Saved mapped AnnData to: {mapped_h5ad_path}")
+
+    
+
 
     # ----------------------------
     # 5. Build inference DataModule
@@ -66,7 +111,7 @@ def main():
     print("Building inference datamodule...")
 
     infer_dm = InferenceAnnDataModule(
-        adata_path=h5ad_path,
+        adata_path=mapped_h5ad_path,
         tokenizer=tokenizer,
         columns=cfg.datamodule.columns,
         normalization=cfg.datamodule.normalization,
