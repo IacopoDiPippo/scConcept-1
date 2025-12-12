@@ -165,7 +165,7 @@ dmypy.json
 .github
 
 # Custom files and directories
-outputs/
+
 .vscode
 lightning_logs/
 *.sbatch
