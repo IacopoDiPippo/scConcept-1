@@ -1,6 +1,8 @@
-name: GeneToken
-columns: ["subclass", "donor_label"]
-normalization: log1p
+name: DataModule
+columns: ["subclass", "donor_label"] # include all obs keys to retrieve from dataloader
+label_keys_to_monitor: ["subclass"]
+batch_keys_to_monitor: ["donor_label"]
+normalization: raw
 gene_sampling_strategy: random-nonzero
 model_speed_sanity_check: False
 precomp_embs_key: null
@@ -10,13 +12,11 @@ dataset:
     variable_size: False
     panel_overlap: False
     panel_selection: mixed
-    panel_selection_mixed_prob: 0.5
+    panel_selection_mixed_prob: 0.25
     panel_filter_regex: ".*"
     panel_size_min: 400
-    panel_size_max: 5000
-    anchor_panel_size: 40000
-    anchor_max_tokens: 100
-    panel_max_drop_rate: null
+    panel_size_max: 60000
+    panel_max_drop_rate: 0.5
     feature_max_drop_rate: null
   val:
     same:
@@ -28,20 +28,32 @@ dataset:
       panel_filter_regex: ${datamodule.dataset.train.panel_filter_regex}
       panel_size_min: ${datamodule.dataset.train.panel_size_min}
       panel_size_max: ${datamodule.dataset.train.panel_size_max}
-    within_P200_B256:
-      max_tokens: 200
+    within_P400_B256:
+      max_tokens: 400
       variable_size: False
       panel_selection: random
-      panel_size_min: 200
-      panel_size_max: 200
+      panel_size_min: 400
+      panel_size_max: 400
     within_P800_B256:
       max_tokens: 800
       variable_size: False
       panel_selection: random
       panel_size_min: 800
       panel_size_max: 800
-
-#PERSONALIZED PANELS!
+    within_P6400_B256:
+      max_tokens: 6400
+      panel_selection: random
+      variable_size: False
+      panel_size_min: 6400
+      panel_size_max: 6400
+    within_Preselected_B256:
+      max_tokens: 800
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: ".*"
+      panel_size_min: 800
+      panel_size_max: 800
+    #PERSONALIZED PANELS!
     within_ZengGenePanel:
       max_tokens: 500
       variable_size: False
@@ -107,16 +119,13 @@ dataset:
 #   panel_size_max: 1129
 
 
-
-
-
 dataloader:
   train:
     within_group_sampling: "dataset"
-    batch_size: 256
+    batch_size: 128
     shuffle: True
-    num_workers: 4
-    pin_memory: False
+    num_workers: 14
+    pin_memory: True
     drop_last: True
     num_samples: null
   val:
@@ -128,7 +137,7 @@ dataloader:
       pin_memory: False
       drop_last: ${datamodule.dataloader.train.drop_last}
       num_samples: 100000
-    within_P200_B256:
+    within_P400_B256:
       within_group_sampling: "dataset"
       batch_size: 256
       shuffle: True
@@ -144,7 +153,22 @@ dataloader:
       pin_memory: False
       drop_last: True
       num_samples: 100000
-
+    within_P6400_B256:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
+    within_Preselected_B256:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 100000
     within_ZengGenePanel:
       within_group_sampling: "dataset"
       batch_size: 256
