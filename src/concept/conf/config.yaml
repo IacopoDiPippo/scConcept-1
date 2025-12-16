@@ -26,7 +26,7 @@ PATH:
   ADATA_PATH: ${PATH.DATASET_PATH}
   PANELS_PATH: ${PATH.PROJECT_PATH}/panels/
   SPLIT: ${split}
-  gene_mapping_path: ${PROJECT_PATH}/token_mapping/pc_gene_token_mapping.pkl
+  gene_mapping_path: ${PATH.PROJECT_PATH}/token_mapping/pc_gene_token_mapping.pkl
 
 
 
