@@ -19,14 +19,14 @@ profiler:
   enabled: False # Use profiler only for debugging
   
 PATH:
-  PROJECT_PATH: /p/scratch/cjinm16/dipippo1
-  PROJECT_DATA_PATH: ${PATH.PROJECT_PATH}/data
+  PROJECT_PATH: /p/scratch/cjinm16/dipippo1/scConcept
+  PROJECT_DATA_PATH: /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw
   CHECKPOINT_ROOT: ${PATH.PROJECT_PATH}/model_checkpoints
-  DATASET_PATH: ${PATH.PROJECT_DATA_PATH}/cxg_raw_2023-12-15
-  ADATA_PATH: ${PATH.DATASET_PATH}/h5ads
-  PANELS_PATH: ${PATH.PROJECT_PATH}/panels/human
+  DATASET_PATH: ${PATH.PROJECT_DATA_PATH}
+  ADATA_PATH: ${PATH.DATASET_PATH}
+  PANELS_PATH: ${PATH.PROJECT_PATH}/panels/
   SPLIT: ${split}
-  gene_mapping_path: ${PATH.DATASET_PATH}/pc_gene_token_mapping.pkl
+  gene_mapping_path: ${PROJECT_PATH}/token_mapping/pc_gene_token_mapping.pkl
 
 
 
