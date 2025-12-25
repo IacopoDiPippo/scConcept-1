@@ -62,6 +62,7 @@ class AnnDataModule(L.LightningDataModule):
             else:
                 # Use LaminDiskCollection for file paths
                 from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
+                print("Path:", split['train'])
                 join = None if within_group_sampling else "outer"
                 collection = LaminDiskCollection(split['train'], layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=join, encode_labels=True, parallel=True, obsm_keys=precomp_embs_key)
             
