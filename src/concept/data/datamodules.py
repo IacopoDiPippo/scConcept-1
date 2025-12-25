@@ -48,7 +48,7 @@ class AnnDataModule(L.LightningDataModule):
             within_group_sampling = dataloader_kwargs['train']['within_group_sampling']
             keys_to_cache = [within_group_sampling] if within_group_sampling else []
             self.train_collate_fn = self._get_collate_fn(dataset_kwargs['train'], split_input=True)
-            
+            print("Path:", split['train'])
             if isinstance(split['train'][0], AnnData):
                 assert within_group_sampling == 'dataset', 'within_group_sampling must be dataset for AnnData objects'
                 # Use InMemoryCollection for AnnData objects
