@@ -88,6 +88,7 @@ class AnnDataModule(L.LightningDataModule):
                     # Use LaminDiskCollection for file paths
                     from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
                     join = None if within_group_sampling else "outer"
+                    print("Val Path:", split['val'])
                     collection = LaminDiskCollection(split['val'], layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=join, encode_labels=True, parallel=True, obsm_keys=precomp_embs_key)
                 
                 dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **val_kwargs})
