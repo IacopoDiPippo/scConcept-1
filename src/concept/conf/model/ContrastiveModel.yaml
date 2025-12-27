@@ -19,7 +19,7 @@ input_encoding: "rank_encoding" # "value_encoding"
 loss_switch_step: 10000
 training:
   resume_from_checkpoint: False
-  validate_before_training: True
+  validate_before_training: False
   masking_rate: 0
   lr: 1e-4
   weight_decay: 0.0
