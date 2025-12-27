@@ -94,6 +94,7 @@ def train(cfg: DictConfig):
         devices=1,          # OBBLIGATORIO
         num_nodes=1,
         precision="bf16-mixed",
+        strategy="ddp",
         logger=logger if cfg.wandb.enabled else None,
         log_every_n_steps=cfg.model.training.log_every_n_steps,
         val_check_interval=cfg.model.training.val_check_interval,
