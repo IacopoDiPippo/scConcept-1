@@ -3,8 +3,12 @@ import os
 # --- W&B ---
 os.environ["WANDB_MODE"] = "offline"
 os.environ["WANDB_SILENT"] = "true"
-os.environ["WANDB_CACHE_DIR"] = "/p/scratch/cjinm16/dipippo1/scConcept/wandb/cache"
-os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/scConcept/wandb/media"
+
+os.environ["WANDB_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb"
+os.environ["WANDB_CACHE_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/cache"
+os.environ["WANDB_CONFIG_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/config"
+os.environ["WANDB_DATA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/data"
+os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/media"
 
 
 import sys
@@ -79,8 +83,8 @@ def train(cfg: DictConfig):
     CHECKPOINT_PATH = "dummy"
     if rank_zero_only.rank == 0:
         CHECKPOINT_PATH = os.path.join(cfg.PATH.CHECKPOINT_ROOT, logger.experiment.id if cfg.wandb.enabled else 'dummy')
-        if cfg.wandb.enabled:
-            logger.experiment.config.update(OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
+        #if cfg.wandb.enabled:
+            #logger.experiment.config.update(OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
 
     profiler = get_profiler(CHECKPOINT_PATH) if cfg.profiler.enabled else None
 
