@@ -517,7 +517,9 @@ class ContrastiveModel(BaseTransformerModel):
         if self.debug and 'panel_1' in batch and 'panel_2' in batch and batch_idx % self.log_every_n_steps == 0:
             self._validate_panels(batch['panel_1'], batch['panel_2'])
             
-        
+        if self.global_step == 0 and self.trainer.is_global_zero:
+            print(">>> ENTERED training_step")
+
         return loss
 
 
