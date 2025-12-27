@@ -154,8 +154,8 @@ class AnnDataModule(L.LightningDataModule):
         else:
             sampler = RandomSampler(dataset, num_samples=num_samples)
         
-        if torch.distributed.is_initialized():
-            sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=False)
+        #if torch.distributed.is_initialized():
+            #sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=False)
 
         # torch_worker_init_fn may not exist for InMemoryCollection
         worker_init_fn = getattr(dataset.collection, 'torch_worker_init_fn', None)
