@@ -6,11 +6,6 @@ os.environ["WANDB_SILENT"] = "true"
 os.environ["WANDB_CACHE_DIR"] = "/p/scratch/cjinm16/dipippo1/scConcept/wandb/cache"
 os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/scConcept/wandb/media"
 
-os.environ["MASTER_ADDR"] = "127.0.0.1"
-os.environ["MASTER_PORT"] = "29501"
-os.environ["NCCL_IB_DISABLE"] = "1"
-os.environ["NCCL_SOCKET_IFNAME"] = "eth0"
-os.environ["GLOO_SOCKET_IFNAME"] = "eth0"
 
 import sys
 import lightning as L
