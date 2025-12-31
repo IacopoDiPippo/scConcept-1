@@ -117,7 +117,6 @@ class AnnDataModule(L.LightningDataModule):
         self._val_dataloader = None
     
     def _get_collate_fn(self, dataset_kwargs, split_input):
-        dataset_kwargs = dict(dataset_kwargs)  # ✅ non mutare config originale
         keys_to_pop = [
             'max_tokens', 'min_tokens', 'variable_size', 'panel_selection', 'panel_selection_mixed_prob',
             'panel_filter_regex', 'panel_size_min', 'panel_size_max', 'panel_overlap',
@@ -135,7 +134,6 @@ class AnnDataModule(L.LightningDataModule):
         return Collate(**collate_kwargs)
     
     def _get_dataloader(self, dataset, dataloader_kwargs, collate_fn, stage):
-        dataloader_kwargs = dict(dataloader_kwargs)  # ✅ non mutare config originale
         sampling_key = dataloader_kwargs.pop('within_group_sampling')
         num_replicas = dist.get_world_size() if torch.distributed.is_initialized() else 1
         batch_size = dataloader_kwargs.pop('batch_size') // num_replicas
@@ -156,8 +154,8 @@ class AnnDataModule(L.LightningDataModule):
         else:
             sampler = RandomSampler(dataset, num_samples=num_samples)
         
-        #if torch.distributed.is_initialized():
-            #sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=False)
+        if torch.distributed.is_initialized():
+            sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=False)
 
         # torch_worker_init_fn may not exist for InMemoryCollection
         worker_init_fn = getattr(dataset.collection, 'torch_worker_init_fn', None)
@@ -177,9 +175,6 @@ class AnnDataModule(L.LightningDataModule):
     def train_dataloader(self):
         dataloader_kwargs = self.dataloader_kwargs['train']
         dataloader = self._get_dataloader(self.train_dataset, dataloader_kwargs, self.train_collate_fn, 'train')
-        if torch.distributed.is_initialized():
-            print(f"[rank {dist.get_rank()}] train_dataloader ready, len={len(dataloader)}")
-
         return dataloader
 
     def val_dataloader(self):
