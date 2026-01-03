@@ -442,6 +442,10 @@ class ContrastiveModel(BaseTransformerModel):
         ######################################################################
         
         for label_key in self.label_keys_to_monitor:
+            labels = batch[label_key]
+
+            if not torch.is_tensor(labels) or labels.ndim != 1 or labels.dtype == torch.bool:
+                continue
             if stage != 'train' and label_key in batch:
                 labels_1, labels_2 = batch[label_key], batch[label_key]
                 if self.world_size > 1:
