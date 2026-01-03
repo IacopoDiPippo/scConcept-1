@@ -668,7 +668,14 @@ class ContrastiveModel(BaseTransformerModel):
         for batch_key in ['dataset'] + self.batch_keys_to_monitor:
             if batch_key in batch:
                 value = torch.cat(all_gather(batch[batch_key]), dim=0) if self.world_size > 1 else batch[batch_key]
-                sample_stats[f'same_{batch_key}'] = (value[0] == value).all().detach()
+                if torch.is_tensor(value):
+                    sample_stats[f'same_{batch_key}'] = (value[0] == value).all().detach()
+                else:
+                    # fallback sicuro
+                    sample_stats[f'same_{batch_key}'] = torch.tensor(
+                        all(v == value[0] for v in value) if isinstance(value, (list, tuple)) else bool(value),
+                        device=self.device
+                )
 
         
         return sample_stats
