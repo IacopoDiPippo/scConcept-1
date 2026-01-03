@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List
-
+import anndata as ad
 
 import lightning as L
 import torch
@@ -49,6 +49,7 @@ class AnnDataModule(L.LightningDataModule):
             keys_to_cache = [within_group_sampling] if within_group_sampling else []
             self.train_collate_fn = self._get_collate_fn(dataset_kwargs['train'], split_input=True)
             print("Path:", split['train'])
+            split['train'] = [ad.read_h5ad(p) for p in split['train']]
             if isinstance(split['train'][0], AnnData):
                 assert within_group_sampling == 'dataset', 'within_group_sampling must be dataset for AnnData objects'
                 # Use InMemoryCollection for AnnData objects
@@ -73,7 +74,8 @@ class AnnDataModule(L.LightningDataModule):
                 within_group_sampling = dataloader_kwargs['val'][val_name]['within_group_sampling']
                 keys_to_cache = [within_group_sampling] if within_group_sampling else []
                 val_collate_fn = self._get_collate_fn(val_kwargs, split_input=True)
-                
+                print("Val Path:", split['val'])
+                split['val'] = [ad.read_h5ad(p) for p in split['val']]
                 if isinstance(split['val'][0], AnnData):
                     assert within_group_sampling == 'dataset', 'within_group_sampling must be dataset for AnnData objects'
                     # Use InMemoryCollection for AnnData objects
