@@ -27,96 +27,164 @@ class AnnDataModule(L.LightningDataModule):
         model_speed_sanity_check: bool = False,
         dataset_kwargs: Dict = {},
         dataloader_kwargs: Dict = {},
-        val_loader_names = []
+        val_loader_names = [],
+        force_in_memory: bool = True,   # ✅ NUOVO FLAG
     ):
         super().__init__()
+
         self.tokenizer = tokenizer
         self.panels_path = panels_path
         self.gene_sampling_strategy = gene_sampling_strategy
         self.model_speed_sanity_check = model_speed_sanity_check
         self.val_loader_names = val_loader_names
         self.dataloader_kwargs = dataloader_kwargs
+        self.force_in_memory = force_in_memory
 
-        dataset_kwargs_shared = {'obs_keys': columns, 
-                                 'obsm_key': precomp_embs_key,
-                                 'tokenizer': tokenizer, 
-                                 'normalization': normalization
-                                 }
-                
+        dataset_kwargs_shared = {
+            'obs_keys': columns,
+            'obsm_key': precomp_embs_key,
+            'tokenizer': tokenizer,
+            'normalization': normalization
+        }
 
+        # =========================
+        # TRAIN
+        # =========================
         if 'train' in split and split['train'] is not None and 'train' in dataset_kwargs:
             within_group_sampling = dataloader_kwargs['train']['within_group_sampling']
             keys_to_cache = [within_group_sampling] if within_group_sampling else []
-            self.train_collate_fn = self._get_collate_fn(dataset_kwargs['train'], split_input=True)
-            print("Path:", split['train'])
-            split['train'] = [ad.read_h5ad(p) for p in split['train']]
-            if isinstance(split['train'][0], AnnData):
-                assert within_group_sampling == 'dataset', 'within_group_sampling must be dataset for AnnData objects'
-                # Use InMemoryCollection for AnnData objects
+
+            self.train_collate_fn = self._get_collate_fn(
+                dataset_kwargs['train'], split_input=True
+            )
+
+            train_sources = split['train']  # ⛔ NON MODIFICARE split
+
+            if self.force_in_memory:
+                assert within_group_sampling == 'dataset', \
+                    'within_group_sampling must be "dataset" when using InMemoryCollection'
+
+                print("🔵 TRAIN: using InMemoryCollection")
+                train_adatas = [ad.read_h5ad(p) for p in train_sources]
+
                 collection = InMemoryCollection(
-                    adata_list=split['train'],
+                    adata_list=train_adatas,
                     obs_keys=columns,
                     layers_keys=['X'],
                     obsm_keys=precomp_embs_key,
-                    keys_to_cache=keys_to_cache
+                    keys_to_cache=['dataset']
                 )
             else:
-                # Use LaminDiskCollection for file paths
+                print("🟡 TRAIN: using LaminDiskCollection")
                 from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
-                print("Path:", split['train'])
+
                 join = None if within_group_sampling else "outer"
-                collection = LaminDiskCollection(split['train'], layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=join, encode_labels=True, parallel=True, obsm_keys=precomp_embs_key)
-            
-            self.train_dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['train']})
+
+                collection = LaminDiskCollection(
+                    train_sources,
+                    layers_keys="X",
+                    obs_keys=columns,
+                    keys_to_cache=keys_to_cache,
+                    join=join,
+                    encode_labels=True,
+                    parallel=True,
+                    obsm_keys=precomp_embs_key
+                )
+
+            self.train_dataset = TokenizedDataset(
+                **{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['train']}
+            )
+
+        # =========================
+        # VAL
+        # =========================
         if 'val' in split and split['val'] is not None and 'val' in dataset_kwargs:
             self.val_datasets = {}
+            val_sources = split['val']  # ⛔ NON MODIFICARE split
+
             for val_name, val_kwargs in dataset_kwargs['val'].items():
                 within_group_sampling = dataloader_kwargs['val'][val_name]['within_group_sampling']
                 keys_to_cache = [within_group_sampling] if within_group_sampling else []
+
                 val_collate_fn = self._get_collate_fn(val_kwargs, split_input=True)
-                print("Val Path:", split['val'])
-                split['val'] = [ad.read_h5ad(p) for p in split['val']]
-                if isinstance(split['val'][0], AnnData):
-                    assert within_group_sampling == 'dataset', 'within_group_sampling must be dataset for AnnData objects'
-                    # Use InMemoryCollection for AnnData objects
+
+                if self.force_in_memory:
+                    assert within_group_sampling == 'dataset', \
+                        'within_group_sampling must be "dataset" when using InMemoryCollection'
+
+                    print(f"🔵 VAL ({val_name}): using InMemoryCollection")
+                    val_adatas = [ad.read_h5ad(p) for p in val_sources]
+
                     collection = InMemoryCollection(
-                        adata_list=split['val'],
+                        adata_list=val_adatas,
                         obs_keys=columns,
                         layers_keys=['X'],
                         obsm_keys=precomp_embs_key,
-                        keys_to_cache=keys_to_cache
+                        keys_to_cache=['dataset']
                     )
                 else:
-                    # Use LaminDiskCollection for file paths
+                    print(f"🟡 VAL ({val_name}): using LaminDiskCollection")
                     from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
+
                     join = None if within_group_sampling else "outer"
-                    print("Val Path:", split['val'])
-                    collection = LaminDiskCollection(split['val'], layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=join, encode_labels=True, parallel=True, obsm_keys=precomp_embs_key)
-                
-                dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **val_kwargs})
+
+                    collection = LaminDiskCollection(
+                        val_sources,
+                        layers_keys="X",
+                        obs_keys=columns,
+                        keys_to_cache=keys_to_cache,
+                        join=join,
+                        encode_labels=True,
+                        parallel=True,
+                        obsm_keys=precomp_embs_key
+                    )
+
+                dataset = TokenizedDataset(
+                    **{'collection': collection, **dataset_kwargs_shared, **val_kwargs}
+                )
                 self.val_datasets[val_name] = (dataset, val_collate_fn)
+
+        # =========================
+        # TEST
+        # =========================
         if 'test' in split and split['test'] is not None and 'test' in dataset_kwargs:
-            keys_to_cache = None
-            self.test_collate_fn = self._get_collate_fn(dataset_kwargs['test'], split_input=False)
-            
-            if isinstance(split['test'][0], AnnData):
-                # Use InMemoryCollection for AnnData objects
-                assert within_group_sampling == 'dataset', 'within_group_sampling must be dataset for AnnData objects'
+            self.test_collate_fn = self._get_collate_fn(
+                dataset_kwargs['test'], split_input=False
+            )
+
+            test_sources = split['test']
+
+            if self.force_in_memory:
+                print("🔵 TEST: using InMemoryCollection")
+                test_adatas = [ad.read_h5ad(p) for p in test_sources]
+
                 collection = InMemoryCollection(
-                    adata_list=split['test'],
+                    adata_list=test_adatas,
                     obs_keys=columns,
                     layers_keys=['X'],
                     obsm_keys=precomp_embs_key,
-                    keys_to_cache=keys_to_cache
+                    keys_to_cache=[]
                 )
             else:
-                # Use LaminDiskCollection for file paths
+                print("🟡 TEST: using LaminDiskCollection")
                 from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
-                collection = LaminDiskCollection(split['test'], layers_keys="X", obs_keys=columns, keys_to_cache=keys_to_cache, join=None, encode_labels=True, parallel=True)
-            
-            self.test_dataset = TokenizedDataset(**{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['test']})
+
+                collection = LaminDiskCollection(
+                    test_sources,
+                    layers_keys="X",
+                    obs_keys=columns,
+                    keys_to_cache=None,
+                    join=None,
+                    encode_labels=True,
+                    parallel=True
+                )
+
+            self.test_dataset = TokenizedDataset(
+                **{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['test']}
+            )
 
         self._val_dataloader = None
+
     
     def _get_collate_fn(self, dataset_kwargs, split_input):
         keys_to_pop = [
