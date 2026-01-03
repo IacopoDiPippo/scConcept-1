@@ -28,7 +28,7 @@ class AnnDataModule(L.LightningDataModule):
         dataset_kwargs: Dict = {},
         dataloader_kwargs: Dict = {},
         val_loader_names = [],
-        force_in_memory: bool = True,   # ✅ NUOVO FLAG
+        force_in_memory: bool = False,   # ✅ NUOVO FLAG
     ):
         super().__init__()
 
@@ -87,7 +87,7 @@ class AnnDataModule(L.LightningDataModule):
                     keys_to_cache=keys_to_cache,
                     join=join,
                     encode_labels=True,
-                    parallel=True,
+                    parallel=False,
                     obsm_keys=precomp_embs_key
                 )
 
@@ -135,7 +135,7 @@ class AnnDataModule(L.LightningDataModule):
                         keys_to_cache=keys_to_cache,
                         join=join,
                         encode_labels=True,
-                        parallel=True,
+                        parallel=False,
                         obsm_keys=precomp_embs_key
                     )
 
