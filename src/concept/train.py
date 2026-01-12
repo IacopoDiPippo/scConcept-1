@@ -11,6 +11,15 @@ os.environ["WANDB_DATA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/data"
 os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/media"
 
 
+# =========================
+# HARD-CODED RESUME SWITCH
+# =========================
+DO_RESUME = True   # <-- metti False per partire da zero
+DO_VALIDATE_BEFORE_FIT = True
+
+RESUME_RUN_ID = "3vdbw2y3"     #vbgtdu4u is weighted sampling, 3vdbw2y3 is random sampling
+RESUME_CKPT = "steps/step=10000.ckpt"
+
 import sys
 import lightning as L
 import pandas as pd
@@ -128,17 +137,36 @@ def train(cfg: DictConfig):
     }
     model = ContrastiveModel(**model_args)
 
-    if not cfg.initialize.resume and cfg.model.training.validate_before_training:
-        trainer.validate(model=model, 
-                        datamodule=datamodule,
-                        )
-    
-    if cfg.initialize.resume:
-        ckpt_path = os.path.join(cfg.PATH.CHECKPOINT_ROOT, cfg.initialize.run_id, cfg.initialize.checkpoint)
-        model = ContrastiveModel.load_from_checkpoint(ckpt_path, **model_args, strict=False)
-    
-    trainer.fit(model=model, datamodule = datamodule)
+    # ------------------------
+    # REAL LIGHTNING RESUME
+    # ------------------------
+    ckpt_path = None
+    if DO_RESUME:
+        ckpt_path = os.path.join(
+            cfg.PATH.CHECKPOINT_ROOT,
+            RESUME_RUN_ID,
+            RESUME_CKPT
+        )
+        print(f"\n>>> RESUMING FROM CHECKPOINT:\n>>> {ckpt_path}\n")
+        assert os.path.isfile(ckpt_path), f"Checkpoint not found: {ckpt_path}"
 
+    if DO_VALIDATE_BEFORE_FIT:
+        print(">>> VALIDATING CHECKPOINT BEFORE TRAINING")
+        trainer.validate(
+            model=model,
+            datamodule=datamodule,
+            ckpt_path=ckpt_path
+        )
+
+
+    # ------------------------
+    # FIT
+    # ------------------------
+    trainer.fit(
+        model=model,
+        datamodule=datamodule,
+        ckpt_path=ckpt_path
+    )
 
 if __name__ == "__main__":
     bash_cfg = OmegaConf.from_cli()
