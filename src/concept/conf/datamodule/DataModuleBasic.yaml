@@ -6,6 +6,8 @@ normalization: raw
 gene_sampling_strategy: random-nonzero
 model_speed_sanity_check: False
 precomp_embs_key: null
+probabilistic_panel_sampling: false
+probabilistic_panel_csv: null
 dataset:
   train:
     max_tokens: 1000

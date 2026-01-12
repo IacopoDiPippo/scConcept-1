@@ -29,6 +29,8 @@ class Collate(BaseCollate):
                  panel_max_drop_rate=None, 
                  feature_max_drop_rate=None,
                  model_speed_sanity_check=False,
+                 probabilistic_panel_sampling: bool = False,
+                 probabilistic_panel_csv: str = None,
                  ):
         super().__init__(PAD_TOKEN=tokenizer.PAD_TOKEN, 
                          max_tokens=max_tokens, 
@@ -55,7 +57,49 @@ class Collate(BaseCollate):
         self.feature_max_drop_rate = feature_max_drop_rate
         self.device_num = dist.get_rank() if dist.is_initialized() else 0
         self._rng = None
-    
+
+        self.probabilistic_panel_sampling = probabilistic_panel_sampling
+
+        if self.probabilistic_panel_sampling:
+            assert probabilistic_panel_csv is not None, \
+                "probabilistic_panel_csv must be provided if probabilistic_panel_sampling=True"
+
+            df = pd.read_csv(probabilistic_panel_csv)
+
+            # encode Ensembl IDs → tokens
+            tokens = self.tokenizer.encode(df["Ensembl_ID"].values)
+
+            probs = df["score"].values.astype(np.float64)
+
+            self.probabilistic_tokens = np.array(tokens, dtype=np.int64)
+            self.probabilistic_probs = np.array(probs, dtype=np.float64)
+
+    def _sample_probabilistic_panel(self, available_tokens, panel_size):
+        """
+        Sampling without replacement using predefined probabilities.
+        Only tokens present in available_tokens are considered.
+        """
+
+        mask = np.isin(self.probabilistic_tokens, available_tokens)
+
+        tokens = self.probabilistic_tokens[mask]
+        probs = self.probabilistic_probs[mask]
+
+        if len(tokens) == 0:
+            # fallback: uniform random
+            return self.rng.choice(available_tokens, panel_size, replace=False)
+
+        probs = probs / probs.sum()
+
+        panel = self.rng.choice(
+            tokens,
+            size=min(panel_size, len(tokens)),
+            replace=False,
+            p=probs
+        )
+        return panel
+
+
     # This is crucial when running multiple GPUs. 
     # It ensures that the random number generator is the same for each worker.
     @property
@@ -160,7 +204,21 @@ class Collate(BaseCollate):
             if self.panel_selection == 'random' or (self.panel_selection == 'mixed' and self.rng.uniform() <= self.panel_selection_mixed_prob) or n_tokens < 10_000:
                 n_tokens_available = n_tokens if panel_overlap else max((n_tokens - self.panel_size_min), 0)
                 panel_size_1 = self.log_int_samping(min(self.panel_size_min, n_tokens_available), min(self.panel_size_max, n_tokens_available))
-                panel_idx_1 = self.rng.choice(panel_indices, panel_size_1, replace=False)
+                if self.probabilistic_panel_sampling:
+                    panel_tokens = self._sample_probabilistic_panel(
+                        batch_permute[0]["tokens"],
+                        panel_size_1
+                    )
+                    panel_idx_1 = np.where(
+                        np.isin(batch_permute[0]["tokens"], panel_tokens)
+                    )[0]
+                else:
+                    panel_idx_1 = self.rng.choice(
+                        panel_indices,
+                        panel_size_1,
+                        replace=False
+                    )
+
                 # print(f'Panel_1 random size: {len(panel_idx_1)}')
             else:
                 panel, panel_name_1 = self._get_predesigned_panel(batch_permute)
@@ -169,12 +227,53 @@ class Collate(BaseCollate):
                 # print(f'Panel_1 {self.panel_names[i]} predefined size: {len(panel_idx_1)}')
             
             if panel_overlap:
-                panel_size_2 = self.log_int_samping(min(self.panel_size_min, n_tokens), min(self.panel_size_max, n_tokens))
-                panel_idx_2 = self.rng.choice(panel_indices, panel_size_2, replace=False)
+                panel_size_2 = self.log_int_samping(
+                    min(self.panel_size_min, n_tokens),
+                    min(self.panel_size_max, n_tokens)
+                )
+
+                if self.probabilistic_panel_sampling:
+                    panel_tokens_2 = self._sample_probabilistic_panel(
+                        batch_permute[0]["tokens"],
+                        panel_size_2
+                    )
+                    panel_idx_2 = np.where(
+                        np.isin(batch_permute[0]["tokens"], panel_tokens_2)
+                    )[0]
+                else:
+                    panel_idx_2 = self.rng.choice(
+                        panel_indices,
+                        panel_size_2,
+                        replace=False
+                    )
+
                 # print(f'Panel_2 random size: {len(panel_idx_2)}, shared: {np.intersect1d(panel_idx_1, panel_idx_2).size}')
             else:
-                panel_size_2 = self.log_int_samping(min(self.panel_size_min, n_tokens - panel_size_1), min(self.panel_size_max, n_tokens - panel_size_1))
-                panel_idx_2 = self.rng.choice(np.setdiff1d(panel_indices, panel_idx_1, assume_unique=True), panel_size_2, replace=False)
+                panel_size_2 = self.log_int_samping(
+                    min(self.panel_size_min, n_tokens - panel_size_1),
+                    min(self.panel_size_max, n_tokens - panel_size_1)
+                )
+
+                available_tokens = batch_permute[0]["tokens"][~np.isin(
+                    batch_permute[0]["tokens"],
+                    batch_permute[0]["tokens"][panel_idx_1]
+                )]
+
+                if self.probabilistic_panel_sampling:
+                    panel_tokens_2 = self._sample_probabilistic_panel(
+                        available_tokens,
+                        panel_size_2
+                    )
+                    panel_idx_2 = np.where(
+                        np.isin(batch_permute[0]["tokens"], panel_tokens_2)
+                    )[0]
+                else:
+                    panel_idx_2 = self.rng.choice(
+                        np.setdiff1d(panel_indices, panel_idx_1, assume_unique=True),
+                        panel_size_2,
+                        replace=False
+                    )
+
                 assert np.intersect1d(panel_idx_1, panel_idx_2).size == 0, 'Panels overlap'
             
                         

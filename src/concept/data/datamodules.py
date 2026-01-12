@@ -199,6 +199,8 @@ class AnnDataModule(L.LightningDataModule):
             'split_input': split_input,
             'gene_sampling_strategy': self.gene_sampling_strategy,
             'model_speed_sanity_check': self.model_speed_sanity_check,
+            'probabilistic_panel_sampling': self.probabilistic_panel_sampling,
+            'probabilistic_panel_csv': self.probabilistic_panel_csv,
             **{key: dataset_kwargs.pop(key) for key in keys_to_pop if key in dataset_kwargs}
         }
         return Collate(**collate_kwargs)
