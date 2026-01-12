@@ -6,7 +6,7 @@ normalization: raw
 gene_sampling_strategy: random-nonzero
 model_speed_sanity_check: False
 precomp_embs_key: null
-probabilistic_panel_sampling: False
+probabilistic_panel_sampling: True
 probabilistic_panel_csv: /p/scratch/cjinm16/dipippo1/projects/scConcept-1/Panels/outputs/score_panels/combined_panel_sorted_max.csv
 dataset:
   train:
