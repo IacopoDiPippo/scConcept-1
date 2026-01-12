@@ -103,7 +103,7 @@ def train(cfg: DictConfig):
         'callbacks': [
             LearningRateMonitor(logging_interval='step'),
             ModelCheckpoint(dirpath=CHECKPOINT_PATH, filename='min_train_loss', monitor='train/loss', mode='min', every_n_epochs=1, save_top_k=1),
-            ModelCheckpoint(dirpath=CHECKPOINT_PATH, filename='min_val_loss', monitor='val/loss', mode='min', every_n_epochs=1, save_top_k=1),
+            ModelCheckpoint(dirpath=CHECKPOINT_PATH, filename='min_val_loss', monitor='val/loss_epoch', mode='min', every_n_epochs=1, save_top_k=1),
             ModelCheckpoint(dirpath=os.path.join(CHECKPOINT_PATH, 'epochs'), filename='{epoch}', every_n_epochs=1, save_on_train_epoch_end=True, save_top_k=-1, save_last='link'),
             ModelCheckpoint(dirpath=os.path.join(CHECKPOINT_PATH, 'steps'), filename='{step}', every_n_train_steps=10000, monitor='train/loss', save_top_k=-1), # save a checkpoint every 10K steps
         ],
@@ -143,7 +143,7 @@ def train(cfg: DictConfig):
 if __name__ == "__main__":
     bash_cfg = OmegaConf.from_cli()
     resume = bash_cfg.pop("initialize.resume", False)
-    if resume:
+    if resume and False:    # disabled for now
         run_id = bash_cfg.pop("initialize.run_id")
         checkpoint = bash_cfg.pop("initialize.checkpoint")
         
