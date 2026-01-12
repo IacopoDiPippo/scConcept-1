@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 import anndata as ad
 
 import lightning as L
@@ -29,9 +29,14 @@ class AnnDataModule(L.LightningDataModule):
         dataloader_kwargs: Dict = {},
         val_loader_names = [],
         force_in_memory: bool = False,   # ✅ NUOVO FLAG
+        probabilistic_panel_sampling: bool = False,
+        probabilistic_panel_csv: Optional[str] = None,
     ):
         super().__init__()
 
+        self.probabilistic_panel_sampling = probabilistic_panel_sampling
+        self.probabilistic_panel_csv = probabilistic_panel_csv
+        
         self.tokenizer = tokenizer
         self.panels_path = panels_path
         self.gene_sampling_strategy = gene_sampling_strategy
@@ -39,7 +44,7 @@ class AnnDataModule(L.LightningDataModule):
         self.val_loader_names = val_loader_names
         self.dataloader_kwargs = dataloader_kwargs
         self.force_in_memory = force_in_memory
-
+    
         dataset_kwargs_shared = {
             'obs_keys': columns,
             'obsm_key': precomp_embs_key,
