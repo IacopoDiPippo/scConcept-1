@@ -15,7 +15,7 @@ os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/media"
 # HARD-CODED RESUME SWITCH
 # =========================
 DO_RESUME = True   # <-- metti False per partire da zero
-DO_VALIDATE_BEFORE_FIT = True
+DO_VALIDATE_BEFORE_FIT = False
 
 RESUME_RUN_ID = "vbgtdu4u"     #vbgtdu4u is weighted sampling, 3vdbw2y3 is random sampling
 RESUME_CKPT = "steps/step=10000.ckpt"
