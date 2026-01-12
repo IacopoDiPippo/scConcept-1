@@ -6,7 +6,7 @@ defaults:
 
 wandb:
   enabled: true
-  run_name: weighted_run
+  run_name: uniform_run
   entity: iacopodipippo-technical-university-of-munich
   project: scConcept
 
