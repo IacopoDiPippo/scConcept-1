@@ -66,7 +66,7 @@ class Collate(BaseCollate):
                 "probabilistic_panel_csv must be provided if probabilistic_panel_sampling=True"
 
             df = pd.read_csv(probabilistic_panel_csv)
-
+            print("Probabilistic weighted approach for panel sampling enabled.")
             # encode Ensembl IDs → tokens
             tokens = self.tokenizer.encode(df["Ensembl_ID"].values)
 
