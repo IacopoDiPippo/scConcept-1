@@ -18,7 +18,7 @@ DO_RESUME = True   # <-- metti False per partire da zero
 DO_VALIDATE_BEFORE_FIT = False
 
 RESUME_RUN_ID = "3vdbw2y3"     #vbgtdu4u is weighted sampling, 3vdbw2y3 is random sampling
-RESUME_CKPT = "steps/step=10000.ckpt"
+RESUME_CKPT =  "min_train_loss.ckpt"    #"steps/step=10000.ckpt"
 
 import sys
 import lightning as L
