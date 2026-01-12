@@ -17,8 +17,8 @@ os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/media"
 DO_RESUME = True   # <-- metti False per partire da zero
 DO_VALIDATE_BEFORE_FIT = False
 
-RESUME_RUN_ID = "3vdbw2y3"     #vbgtdu4u is weighted sampling, 3vdbw2y3 is random sampling
-RESUME_CKPT =  "min_train_loss.ckpt"    #"steps/step=10000.ckpt"
+RESUME_RUN_ID = "pzqd7pwc"     #vbgtdu4u is weighted sampling, 3vdbw2y3 is random sampling
+RESUME_CKPT =  "epochs/last.ckpt"    #"steps/step=10000.ckpt"
 
 import sys
 import lightning as L
