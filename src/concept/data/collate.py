@@ -44,6 +44,7 @@ class Collate(BaseCollate):
         if self.panel_selection != 'random':
             self.panels_dir = Path(panels_path)
             self.panel_names = [panel_name for panel_name in os.listdir(self.panels_dir) if re.search(panel_filter_regex, panel_name) and panel_name.endswith('.csv')]
+            print("Available panels:", self.panel_names)
             self.panels = [self.tokenizer.encode(pd.read_csv(self.panels_dir / panel_name)['Ensembl_ID'].values) 
                        for panel_name in self.panel_names]
             for i in range(len(self.panels)):
