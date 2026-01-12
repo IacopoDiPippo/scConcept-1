@@ -28,7 +28,7 @@ class AnnDataModule(L.LightningDataModule):
         dataset_kwargs: Dict = {},
         dataloader_kwargs: Dict = {},
         val_loader_names = [],
-        force_in_memory: bool = True,   # ✅ NUOVO FLAG
+        force_in_memory: bool = False,   # ✅ NUOVO FLAG
         probabilistic_panel_sampling: bool = False,
         probabilistic_panel_csv: Optional[str] = None,
     ):
@@ -36,7 +36,7 @@ class AnnDataModule(L.LightningDataModule):
 
         self.probabilistic_panel_sampling = probabilistic_panel_sampling
         self.probabilistic_panel_csv = probabilistic_panel_csv
-
+        
         self.tokenizer = tokenizer
         self.panels_path = panels_path
         self.gene_sampling_strategy = gene_sampling_strategy
