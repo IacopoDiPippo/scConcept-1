@@ -186,12 +186,12 @@ class Collate(BaseCollate):
         return panel, self.panel_names[i]
     
     def __call__(self, batch):
-        # DEBUG: stampa solo ogni tanto
+        """# DEBUG: stampa solo ogni tanto
         item = batch[0]
         print("n_tokens:", len(item["tokens"]))
         print("nonzero:", (item["values"] > 0).sum())
         print("min/max values:", item["values"].min(), item["values"].max())
-        print("----")
+        print("----")"""
         
         n_tokens = len(batch[0]['tokens'])
         permute = self.rng.permutation(n_tokens)
