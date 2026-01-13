@@ -442,10 +442,6 @@ class ContrastiveModel(BaseTransformerModel):
         ######################################################################
         
         for label_key in self.label_keys_to_monitor:
-            labels = batch[label_key]
-
-            if not torch.is_tensor(labels) or labels.ndim != 1 or labels.dtype == torch.bool:
-                continue
             if stage != 'train' and label_key in batch:
                 labels_1, labels_2 = batch[label_key], batch[label_key]
                 if self.world_size > 1:
@@ -521,9 +517,7 @@ class ContrastiveModel(BaseTransformerModel):
         if self.debug and 'panel_1' in batch and 'panel_2' in batch and batch_idx % self.log_every_n_steps == 0:
             self._validate_panels(batch['panel_1'], batch['panel_2'])
             
-        if self.global_step == 0 and self.trainer.is_global_zero:
-            print(">>> ENTERED training_step")
-
+        
         return loss
 
 
@@ -672,14 +666,7 @@ class ContrastiveModel(BaseTransformerModel):
         for batch_key in ['dataset'] + self.batch_keys_to_monitor:
             if batch_key in batch:
                 value = torch.cat(all_gather(batch[batch_key]), dim=0) if self.world_size > 1 else batch[batch_key]
-                if torch.is_tensor(value):
-                    sample_stats[f'same_{batch_key}'] = (value[0] == value).all().detach()
-                else:
-                    # fallback sicuro
-                    sample_stats[f'same_{batch_key}'] = torch.tensor(
-                        all(v == value[0] for v in value) if isinstance(value, (list, tuple)) else bool(value),
-                        device=self.device
-                )
+                sample_stats[f'same_{batch_key}'] = (value[0] == value).all().detach()
 
         
         return sample_stats
