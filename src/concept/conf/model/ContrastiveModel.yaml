@@ -17,6 +17,7 @@ mask_padding: True
 pe_max_len: 5000
 input_encoding: "rank_encoding" # "value_encoding"
 loss_switch_step: 10000
+min_tokens: null
 training:
   resume_from_checkpoint: False
   validate_before_training: True
