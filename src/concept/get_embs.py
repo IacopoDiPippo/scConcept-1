@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
 """
 python src/concept/get_embs.py \
-  --checkpoint /p/project1/hai_fzj_bda/checkpoints/t9qa3400/steps/step=310000.ckpt \
+  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/t9qa3400/steps/step=310000.ckpt \
   --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad \
   --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/Zeng \
   --batch_size 64
