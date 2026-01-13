@@ -99,9 +99,27 @@ if __name__ == "__main__":
 
 
 """
-python src/concept/get_embs.py \
+python -m concept/get_embs.py \
   --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/t9qa3400/steps/step=310000.ckpt \
   --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad \
   --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/Zeng \
+  --batch_size 64
+
+python -m concept/get_embs.py \
+  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/t9qa3400/steps/step=310000.ckpt \
+  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zhuang-ABCA-1.h5ad.h5ad \
+  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/Zhuang-ABCA-1 \
+  --batch_size 64
+
+python -m concept/get_embs.py \
+  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/zp2ksa3s/steps/step=310000.ckpt \
+  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad \
+  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/Zeng \
+  --batch_size 64
+
+  python -m concept/get_embs.py \
+  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/zp2ksa3s/steps/step=310000.ckpt \
+  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zhuang-ABCA-1.h5ad.h5ad \
+  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/Zhuang-ABCA-1 \
   --batch_size 64
   """
