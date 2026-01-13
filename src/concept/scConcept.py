@@ -14,7 +14,7 @@ from pathlib import Path
 import pandas as pd
 import anndata as ad
 from torch.utils.data import DataLoader
-
+from omegaconf import open_dict
 
 class scConcept:
     """
@@ -183,39 +183,40 @@ class scConcept:
         
         print(f"Model loaded successfully on {self.device}")
     
+
     @staticmethod
     def apply_compatibility_changes(cfg: DictConfig):
-        """Apply compatibility changes for older checkpoints. Returns updated cfg."""
-        if 'per_view_normalization' not in cfg.model:
-            cfg.model.per_view_normalization = False
-        if 'projection_dim' not in cfg.model:
-            cfg.model.projection_dim = None
-        if 'weight_decay' not in cfg.model.training:
-            cfg.model.training.weight_decay = 0.0
-        if 'min_lr' not in cfg.model.training:
-            cfg.model.training.min_lr = 0.0
-        if 'data_loading_speed_sanity_check' not in cfg.model:
-            cfg.model.data_loading_speed_sanity_check = False
-        if 'decoder_head' not in cfg.model:
-            cfg.model.decoder_head = True
-        if 'gene_sampling_strategy' in cfg.datamodule.dataset.train:
-            cfg.datamodule.gene_sampling_strategy = cfg.datamodule.dataset.train.gene_sampling_strategy
-        if 'gene_sampling_strategy' not in cfg.datamodule:
-            cfg.datamodule.gene_sampling_strategy = 'top-nonzero'
-        if 'model_speed_sanity_check' not in cfg.datamodule:
-            cfg.datamodule.model_speed_sanity_check = False
-        if 'min_tokens' not in cfg.model:
-            cfg.model.min_tokens = None
-        if 'max_tokens' not in cfg.model:
-            cfg.model.max_tokens = None
-        if 'mask_padding' not in cfg.model:
-            cfg.model.mask_padding = False
-        if 'flash_attention' not in cfg.model:
-            cfg.model.flash_attention = False
-        if 'pe_max_len' not in cfg.model:
-            cfg.model.pe_max_len = 5000
-        if 'loss_switch_step' not in cfg.model:
-            cfg.model.loss_switch_step = 2000
+        with open_dict(cfg):  # <-- sblocca aggiunte anche se struct
+            if 'per_view_normalization' not in cfg.model:
+                cfg.model.per_view_normalization = False
+            if 'projection_dim' not in cfg.model:
+                cfg.model.projection_dim = None
+            if 'weight_decay' not in cfg.model.training:
+                cfg.model.training.weight_decay = 0.0
+            if 'min_lr' not in cfg.model.training:
+                cfg.model.training.min_lr = 0.0
+            if 'data_loading_speed_sanity_check' not in cfg.model:
+                cfg.model.data_loading_speed_sanity_check = False
+            if 'decoder_head' not in cfg.model:
+                cfg.model.decoder_head = True
+            if 'gene_sampling_strategy' in cfg.datamodule.dataset.train:
+                cfg.datamodule.gene_sampling_strategy = cfg.datamodule.dataset.train.gene_sampling_strategy
+            if 'gene_sampling_strategy' not in cfg.datamodule:
+                cfg.datamodule.gene_sampling_strategy = 'top-nonzero'
+            if 'model_speed_sanity_check' not in cfg.datamodule:
+                cfg.datamodule.model_speed_sanity_check = False
+            if 'min_tokens' not in cfg.model:
+                cfg.model.min_tokens = None
+            if 'max_tokens' not in cfg.model:
+                cfg.model.max_tokens = None
+            if 'mask_padding' not in cfg.model:
+                cfg.model.mask_padding = False
+            if 'flash_attention' not in cfg.model:
+                cfg.model.flash_attention = False
+            if 'pe_max_len' not in cfg.model:
+                cfg.model.pe_max_len = 5000
+            if 'loss_switch_step' not in cfg.model:
+                cfg.model.loss_switch_step = 2000
         return cfg
    
     def extract_embeddings(self, adata: ad.AnnData, gene_id_column: str = None, batch_size: int = 32, max_tokens: int = None, 
