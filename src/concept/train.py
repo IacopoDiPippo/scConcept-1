@@ -17,7 +17,7 @@ os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/media"
 DO_RESUME = True   # <-- metti False per partire da zero
 DO_VALIDATE_BEFORE_FIT = True
 
-RESUME_RUN_ID = "t9qa3400"     #vbgtdu4u is weighted sampling, t9qa3400 is random sampling
+RESUME_RUN_ID = "t9qa3400"     #zp2ksa3s is weighted sampling, t9qa3400 is random sampling
 RESUME_CKPT =  "steps/step=310000.ckpt"    #"steps/step=10000.ckpt"
 
 import sys
@@ -53,6 +53,7 @@ def train(cfg: DictConfig):
         val_loader_names = []
         
     gene_mapping = pd.read_pickle(cfg.PATH.gene_mapping_path).to_dict()
+    print("Tokenizer vocab size:", len(gene_mapping))
     
     split = {}
     for key, filenames in cfg.PATH.SPLIT.items():
