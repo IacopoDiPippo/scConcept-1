@@ -44,7 +44,7 @@ def get_embs(cfg: DictConfig, ckpt_path: str, adata_path: str, gene_id_column: s
         gene_id_column=gene_id_column
     )
     
-    return result
+    return result, adata.obs_names.to_numpy().astype(str)
 
 
 if __name__ == "__main__":
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     
     print(f"Using checkpoint: {args.checkpoint}")
     
-    result = get_embs(
+    result, cell_ids = get_embs(
         cfg=cfg, 
         ckpt_path=args.checkpoint, 
         adata_path=args.adata_path,
@@ -86,6 +86,8 @@ if __name__ == "__main__":
     
     print(f"Saving embeddings to {output_emb_path}...")
     os.makedirs(output_emb_path, exist_ok=True)
+    
+    np.save(output_emb_path / "cell_ids.npy", cell_ids)
     np.save(output_emb_path / 'cell_embs_cls.npy', result['cls_cell_emb'])
     np.save(output_emb_path / 'cell_embs_mean.npy', result['mean_cell_emb'])
     
@@ -99,7 +101,7 @@ if __name__ == "__main__":
 """
 python src/concept/get_embs.py \
   --checkpoint /p/project1/hai_fzj_bda/checkpoints/t9qa3400/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/my_dataset.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/embeddings/my_dataset \
+  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad \
+  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/Zeng \
   --batch_size 64
   """
