@@ -1,163 +1,675 @@
-import os
-import sys
-import torch
-from omegaconf import DictConfig, OmegaConf
-from concept import scConcept
-import numpy as np
-from pathlib import Path
+import o#!/usr/bin/env python3
+"""
+Pipeline for generating embeddings, computing UMAP, and calculating metrics (cLISI, iLISI)
+for single-cell datasets (ISD, Zeng, Zhuang, Atlas).
+
+Usage examples:
+    # Generate embeddings for all datasets
+    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets isd zeng zhuang
+
+    # Generate embeddings + UMAP for specific combination
+    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets zeng zhuang --umap
+
+    # Full pipeline with metrics
+    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets isd zeng zhuang \\
+        --umap --clisi dataset cell_type --ilisi dataset
+
+    # Include Atlas (only dataset metrics, no cell_type)
+    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets zhuang atlas \\
+        --umap --clisi dataset --ilisi dataset
+
+    # Atlas with single panel filtering
+    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets zhuang atlas \\
+        --atlas-panel zhuang --umap --clisi dataset
+
+    # Atlas with multiple panels (creates atlas_zhuang and atlas_zeng as separate datasets)
+    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets zhuang zeng atlas \\
+        --atlas-panel zhuang zeng --umap --clisi dataset
+"""
+
 import argparse
-import anndata as ad
-from hydra import compose, initialize
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import List, Optional
+
+import numpy as np
+import pandas as pd
+
+# Set temp directory before importing scib
+TMPDIR = "/p/scratch/cjinm16/dipippo1/tmp_lisi"
+os.makedirs(TMPDIR, exist_ok=True)
+os.environ["TMPDIR"] = TMPDIR
+os.environ["TEMP"] = TMPDIR
+os.environ["TMP"] = TMPDIR
+
+import tempfile
+tempfile.tempdir = TMPDIR
 
 
-def get_embs(cfg: DictConfig, ckpt_path: str, adata_path: str, gene_id_column: str = None,
-             batch_size: int = 32, max_tokens: int = None, gene_sampling_strategy: str = None):
-    """
-    Extract embeddings using scConcept API extract_embeddings method.
+# ============================================================
+# CONFIGURATION - Modify these paths as needed
+# ============================================================
+
+CONFIG = {
+    # Dataset paths
+    "isd": {
+        "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/hvg_isd_normed.h5ad",
+        "annotation_path": None,  # ISD has cell_type in adata already
+        "has_cell_type": True,
+        "subsample": 100_000,
+    },
+    "zeng": {
+        "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad",
+        "annotation_path": "/p/project1/hai_fzj_bda/salg1/cellseg-benchmark/data_dir/samples/zeng/results/merfish/cell_type_annotation/adata_obs_annotated.csv",
+        "has_cell_type": True,
+        "subsample": 100_000,
+        "cell_id_suffix": "-Zeng",
+    },
+    "zhuang": {
+        "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zhuang-ABCA-1.h5ad",
+        "annotation_path": "/p/project1/hai_fzj_bda/salg1/cellseg-benchmark/data_dir/samples/zhuang/results/merfish/cell_type_annotation/adata_obs_annotated.csv",
+        "has_cell_type": True,
+        "subsample": 100_000,
+        "cell_id_suffix": "-Zhuang-ABCA-1",
+    },
+    "atlas": {
+        "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/abc_atlas_val.h5ad",
+        "annotation_path": None,
+        "has_cell_type": False,  # Atlas has no cell type annotation
+        "subsample": 100_000,
+    },
+}
+
+# Panel paths for filtering atlas
+PANELS = {
+    "zhuang": "/p/scratch/cjinm16/dipippo1/scConcept/panels/Zhuang_ABCA1.csv",
+    "zeng": "/p/scratch/cjinm16/dipippo1/scConcept/panels/Zeng_Panel.csv",
+    "isd": "/p/scratch/cjinm16/dipippo1/scConcept/panels/ISD.csv",
+}
+
+# Path for filtered atlas files
+FILTERED_ATLAS_PATH = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings"
+
+# Base path for embeddings (will be organized by model name)
+EMBEDDINGS_BASE_PATH = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/models"
+
+# Output figures path - UMAPs always saved here
+FIGURES_PATH = "/p/scratch/cjinm16/dipippo1/scConcept/umaps"
+
+# Cell type palette for visualization
+CELL_TYPE_PALETTE = {
+    "ABCs": "#023fa5",
+    "Astrocytes": "#7d87b9",
+    "Astroependymal": "#bec1d4",
+    "BAMs": "#d6bcc0",
+    "Bergmann": "#bb7784",
+    "Choroid-Plexus": "#8e063b",
+    "ECs": "#4a6fe3",
+    "Ependymal": "#8595e1",
+    "Immune-Other": "#b5bbe3",
+    "Microglia": "#e6afb9",
+    "Neurons-Dopa": "#e07b91",
+    "Neurons-Gaba": "#d33f6a",
+    "Neurons-Glut": "#11c638",
+    "Neurons-Glyc-Gaba": "#8dd593",
+    "Neurons-Granule-Immature": "#c6dec7",
+    "Neurons-Other": "#ead3c6",
+    "OECs": "#f0b98d",
+    "OPCs": "#ef9708",
+    "Oligodendrocytes": "#0fcfc0",
+    "Pericytes": "#9cded6",
+    "SMCs": "#d5eae7",
+    "Tanycytes": "#f3e1eb",
+    "Undefined": "#f6c4e1",
+    "VLMCs": "#f79cd4",
+}
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def get_model_name(checkpoint_path: str) -> str:
+    """Extract model name from checkpoint path for organizing embeddings."""
+    path = Path(checkpoint_path)
+    step_name = path.stem.replace("=", "")  # step=310000 -> step310000
+    model_dir = path.parent.parent.name  # zp2ksa3s
+    return f"{model_dir}_{step_name}"
+
+
+def get_embedding_path(model_name: str, dataset_name: str, panel: str = None) -> str:
+    """Get the embedding output path for a given model and dataset."""
+    if panel:
+        return os.path.join(EMBEDDINGS_BASE_PATH, model_name, f"{dataset_name}_{panel}")
+    return os.path.join(EMBEDDINGS_BASE_PATH, model_name, dataset_name)
+
+
+def get_filtered_atlas_path(panel: str) -> str:
+    """Get path for panel-filtered atlas file."""
+    return os.path.join(FILTERED_ATLAS_PATH, f"abc_atlas_val_{panel}.h5ad")
+
+
+def filter_adata_by_panel(adata_path: str, panel_path: str, output_path: str) -> str:
+    """Filter AnnData object to only include genes from a panel."""
+    import anndata as ad
     
-    Args:
-        cfg: Configuration dictionary
-        ckpt_path: Path to model checkpoint
-        adata_path: Path to AnnData file
-        batch_size: Batch size for dataloader
-        max_tokens: Maximum number of tokens per cell
-        gene_sampling_strategy: Gene sampling strategy
-        gene_id_column: Column name in adata.var to use as gene IDs (default: None, uses index)
-    """
-    concept = scConcept()
-    concept.load_config_and_model(
-        config=cfg,
-        model_path=ckpt_path,
-        gene_mapping_path=cfg.PATH.gene_mapping_path,
-        panels_dir=cfg.PATH.PANELS_PATH
-    )
+    if os.path.exists(output_path):
+        print(f"✅ Filtered atlas already exists: {output_path}")
+        return output_path
     
-    print(f"Loading AnnData from {adata_path}...")
+    print(f"🔧 Filtering atlas by panel...")
+    print(f"   Input: {adata_path}")
+    print(f"   Panel: {panel_path}")
+    
     adata = ad.read_h5ad(adata_path)
+    panel = pd.read_csv(panel_path)
+    
+    if 'Ensembl_ID' not in panel.columns:
+        raise ValueError(f"Panel CSV must have 'Ensembl_ID' column. Found: {panel.columns.tolist()}")
+    
+    panel_genes = panel['Ensembl_ID'].tolist()
+    
+    # Filter to keep only genes in the panel
+    adata_filtered = adata[:, adata.var_names.isin(panel_genes)]
+    genes_found = adata.var_names.isin(panel_genes).sum()
+    
+    print(f"   Original: {adata.shape[1]} genes -> Filtered: {adata_filtered.shape[1]} genes")
+    print(f"   Found {genes_found}/{len(panel_genes)} panel genes")
+    
+    adata_filtered.write_h5ad(output_path)
+    print(f"   ✅ Saved: {output_path}")
+    
+    return output_path
+
+
+def embeddings_exist(embedding_path: str) -> bool:
+    """Check if embeddings already exist."""
+    required_files = ["cell_ids.npy", "cell_embs_mean.npy", "cell_embs_cls.npy"]
+    return all(os.path.exists(os.path.join(embedding_path, f)) for f in required_files)
+
+
+def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batch_size: int = 64):
+    """Generate embeddings using concept.get_embs."""
+    print(f"\n{'='*60}")
+    print(f"🚀 Generating embeddings")
+    print(f"   Checkpoint: {checkpoint}")
+    print(f"   Input: {adata_path}")
+    print(f"   Output: {output_path}")
+    print(f"{'='*60}\n")
+    
+    os.makedirs(output_path, exist_ok=True)
+    
+    cmd = [
+        "python", "-m", "concept.get_embs",
+        "--checkpoint", checkpoint,
+        "--adata_path", adata_path,
+        "--output_emb_path", output_path,
+        "--batch_size", str(batch_size),
+    ]
+    
+    print(f"Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=False)
+    
+    if result.returncode != 0:
+        raise RuntimeError(f"Embedding generation failed with return code {result.returncode}")
+    
+    print(f"✅ Embeddings saved to: {output_path}")
+
+
+def sanity_check(adata, name="adata"):
+    """Print minimal info about an AnnData object."""
+    print(f"📋 {name}: {adata.n_obs:,} cells × {adata.n_vars:,} genes | obsm: {list(adata.obsm.keys())}")
+
+
+def add_concept_embeddings(adata, embedding_path: str, name: str = "Dataset"):
+    """Load concept embeddings and add them to adata.obsm."""
+    cell_ids = np.load(f"{embedding_path}/cell_ids.npy", allow_pickle=True).astype(str)
+    emb_mean = np.load(f"{embedding_path}/cell_embs_mean.npy")
+    emb_cls = np.load(f"{embedding_path}/cell_embs_cls.npy")
+    
+    df_mean = pd.DataFrame(emb_mean, index=cell_ids)
+    df_cls = pd.DataFrame(emb_cls, index=cell_ids)
+    
+    # Align with adata.obs_names
+    adata.obsm["concept_mean_embedding"] = df_mean.loc[adata.obs_names].to_numpy()
+    adata.obsm["concept_cls_embedding"] = df_cls.loc[adata.obs_names].to_numpy()
+    
+    return adata
+
+
+def load_dataset(dataset_name: str, embedding_path: str, subsample: Optional[int] = None):
+    """Load a dataset with its embeddings and annotations."""
+    import anndata as ad
+    import scanpy as sc
+    
+    config = CONFIG[dataset_name]
+    print(f"📂 Loading {dataset_name}...")
+    
+    adata = sc.read(config["adata_path"])
+    
+    # Add embeddings
+    adata = add_concept_embeddings(adata, embedding_path, name=dataset_name)
+    
+    # Handle annotations if available
+    if config["annotation_path"] is not None:
+        ann = pd.read_csv(config["annotation_path"])
         
-    print(f"Extracting embeddings with batch_size={batch_size}, max_tokens={max_tokens}, gene_sampling_strategy={gene_sampling_strategy}")
-    result = concept.extract_embeddings(
-        adata=adata,
-        batch_size=batch_size,
-        max_tokens=max_tokens,
-        gene_sampling_strategy=gene_sampling_strategy,
-        gene_id_column=gene_id_column
+        # Create cell_id with proper suffix
+        suffix = config.get("cell_id_suffix", f"-{dataset_name}")
+        adata.obs["cell_id"] = adata.obs.index.astype(str) + suffix
+        ann["cell_id"] = ann["cell_id"].astype(str) + suffix
+        
+        # Merge annotations
+        adata.obs = adata.obs.merge(
+            ann[["cell_id", "cell_type_mmc_raw"]],
+            on="cell_id",
+            how="left"
+        )
+        
+        # Filter to annotated cells only
+        mask_valid = adata.obs["cell_type_mmc_raw"].notna()
+        print(f"   Annotated: {mask_valid.sum()}/{adata.n_obs} cells")
+        adata = adata[mask_valid].copy()
+    
+    # For ISD, check if cell_type column exists
+    if dataset_name == "isd":
+        if "cell_type_mmc_raw_revised" in adata.obs.columns:
+            adata.obs["cell_type_mmc_raw"] = adata.obs["cell_type_mmc_raw_revised"]
+        elif "cell_type" in adata.obs.columns:
+            adata.obs["cell_type_mmc_raw"] = adata.obs["cell_type"]
+    
+    # Subsample if needed
+    if subsample and adata.n_obs > subsample:
+        print(f"   Subsampling to {subsample} cells")
+        sc.pp.subsample(adata, n_obs=subsample, random_state=0)
+    
+    # Add dataset identifier
+    adata.obs["dataset"] = dataset_name.capitalize()
+    
+    print(f"   ✅ {adata.n_obs:,} cells loaded")
+    return adata
+
+
+def load_dataset_custom(dataset_name: str, adata_path: str, embedding_path: str, 
+                        subsample: Optional[int] = None, has_cell_type: bool = False):
+    """Load a dataset from custom path (for filtered atlas)."""
+    import anndata as ad
+    import scanpy as sc
+    
+    print(f"📂 Loading {dataset_name} (custom)...")
+    
+    adata = sc.read(adata_path)
+    
+    # Add embeddings
+    adata = add_concept_embeddings(adata, embedding_path, name=dataset_name)
+    
+    # Subsample if needed
+    if subsample and adata.n_obs > subsample:
+        print(f"   Subsampling to {subsample} cells")
+        sc.pp.subsample(adata, n_obs=subsample, random_state=0)
+    
+    # Add dataset identifier
+    adata.obs["dataset"] = dataset_name.capitalize()
+    
+    print(f"   ✅ {adata.n_obs:,} cells loaded")
+    return adata
+
+
+def compute_neighbors_umap(adata, use_rep: str = "concept_cls_embedding"):
+    """Compute neighbors and UMAP."""
+    import scanpy as sc
+    
+    print(f"🔄 Computing neighbors using {use_rep}...")
+    sc.pp.neighbors(adata, use_rep=use_rep, n_neighbors=30)
+    
+    print("🔄 Computing UMAP...")
+    sc.tl.umap(adata, min_dist=0.3, random_state=0)
+
+
+def plot_umap(adata, color: str, palette=None, title: str = None, out_png: str = None):
+    """Plot UMAP and save to file."""
+    import scanpy as sc
+    import matplotlib.pyplot as plt
+    
+    fig = sc.pl.umap(
+        adata,
+        color=color,
+        title=title,
+        frameon=False,
+        palette=palette,
+        show=False,
+        return_fig=True,
     )
     
-    return result, adata.obs_names.to_numpy().astype(str)
+    if out_png:
+        os.makedirs(os.path.dirname(out_png), exist_ok=True)
+        fig.savefig(out_png, dpi=300, bbox_inches="tight")
+        print(f"💾 Saved: {out_png}")
+    
+    plt.close(fig)
+
+
+def compute_clisi(adata, label_key: str) -> float:
+    """Compute cLISI score."""
+    import scib
+    
+    print(f"📊 Computing cLISI for '{label_key}'...")
+    score = scib.metrics.clisi_graph(adata, label_key=label_key, type_="knn")
+    print(f"   cLISI ({label_key}): {score:.4f}")
+    return score
+
+
+def compute_ilisi(adata, batch_key: str) -> float:
+    """Compute iLISI score."""
+    import scib
+    
+    print(f"📊 Computing iLISI for '{batch_key}'...")
+    score = scib.metrics.ilisi_graph(adata, batch_key=batch_key, type_="knn")
+    print(f"   iLISI ({batch_key}): {score:.4f}")
+    return score
+
+
+# ============================================================
+# MAIN PIPELINE
+# ============================================================
+
+def run_pipeline(
+    checkpoint: str,
+    datasets: List[str],
+    compute_umap: bool = False,
+    clisi_keys: List[str] = None,
+    ilisi_keys: List[str] = None,
+    batch_size: int = 64,
+    force_regenerate: bool = False,
+    atlas_panels: List[str] = None,
+):
+    """Run the full pipeline."""
+    import anndata as ad
+    import scanpy as sc
+    
+    model_name = get_model_name(checkpoint)
+    panel_info = f" (panels: {', '.join(atlas_panels)})" if atlas_panels else ""
+    print(f"\n🚀 Pipeline: {model_name} | Datasets: {', '.join(datasets)}{panel_info}\n")
+    
+    # Validate datasets
+    for ds in datasets:
+        if ds not in CONFIG:
+            raise ValueError(f"Unknown dataset: {ds}. Available: {list(CONFIG.keys())}")
+    
+    # Validate panels
+    if atlas_panels and "atlas" not in datasets:
+        print(f"⚠️ Warning: --atlas-panel specified but 'atlas' not in datasets. Ignoring panels.")
+        atlas_panels = None
+    
+    if atlas_panels:
+        for panel in atlas_panels:
+            if panel not in PANELS:
+                raise ValueError(f"Unknown panel: {panel}. Available: {list(PANELS.keys())}")
+    
+    # Step 1: Generate embeddings if needed
+    print("=" * 60)
+    print("STEP 1: EMBEDDINGS")
+    print("=" * 60)
+    
+    for ds in datasets:
+        if ds == "atlas" and atlas_panels:
+            # Generate embeddings for each panel
+            for panel in atlas_panels:
+                emb_path = get_embedding_path(model_name, ds, panel=panel)
+                
+                if embeddings_exist(emb_path) and not force_regenerate:
+                    print(f"✅ atlas_{panel}: embeddings exist at {emb_path}")
+                else:
+                    # First, create filtered atlas if needed
+                    filtered_atlas_path = get_filtered_atlas_path(panel)
+                    filter_adata_by_panel(
+                        adata_path=CONFIG["atlas"]["adata_path"],
+                        panel_path=PANELS[panel],
+                        output_path=filtered_atlas_path,
+                    )
+                    # Then generate embeddings
+                    generate_embeddings(
+                        checkpoint=checkpoint,
+                        adata_path=filtered_atlas_path,
+                        output_path=emb_path,
+                        batch_size=batch_size,
+                    )
+        elif ds != "atlas":  # Skip atlas without panel here
+            emb_path = get_embedding_path(model_name, ds)
+            
+            if embeddings_exist(emb_path) and not force_regenerate:
+                print(f"✅ {ds}: embeddings exist at {emb_path}")
+            else:
+                generate_embeddings(
+                    checkpoint=checkpoint,
+                    adata_path=CONFIG[ds]["adata_path"],
+                    output_path=emb_path,
+                    batch_size=batch_size,
+                )
+        else:
+            # Atlas without panel
+            emb_path = get_embedding_path(model_name, ds)
+            
+            if embeddings_exist(emb_path) and not force_regenerate:
+                print(f"✅ {ds}: embeddings exist at {emb_path}")
+            else:
+                generate_embeddings(
+                    checkpoint=checkpoint,
+                    adata_path=CONFIG[ds]["adata_path"],
+                    output_path=emb_path,
+                    batch_size=batch_size,
+                )
+    
+    # Step 2: Load datasets
+    print("\n" + "=" * 60)
+    print("STEP 2: LOAD DATASETS")
+    print("=" * 60)
+    
+    adatas = {}
+    for ds in datasets:
+        if ds == "atlas" and atlas_panels:
+            # Load each panel-filtered atlas separately
+            for panel in atlas_panels:
+                emb_path = get_embedding_path(model_name, ds, panel=panel)
+                filtered_atlas_path = get_filtered_atlas_path(panel)
+                key = f"atlas_{panel}"
+                adatas[key] = load_dataset_custom(
+                    dataset_name=key,
+                    adata_path=filtered_atlas_path,
+                    embedding_path=emb_path,
+                    subsample=CONFIG[ds].get("subsample"),
+                    has_cell_type=False,
+                )
+        elif ds != "atlas" or not atlas_panels:
+            emb_path = get_embedding_path(model_name, ds)
+            adatas[ds] = load_dataset(
+                dataset_name=ds,
+                embedding_path=emb_path,
+                subsample=CONFIG[ds].get("subsample"),
+            )
+    
+    # Step 3: Combine datasets
+    print("\n" + "=" * 60)
+    print("STEP 3: COMBINE")
+    print("=" * 60)
+    
+    if len(adatas) == 1:
+        combined = list(adatas.values())[0]
+    else:
+        combined = ad.concat(
+            adatas,
+            join="outer",
+            label="dataset",
+            index_unique=None,
+        )
+        combined.obs_names_make_unique()
+    
+    print(f"Combined: {combined.n_obs:,} cells | {dict(combined.obs['dataset'].value_counts())}")
+    
+    # Step 4: Compute neighbors (needed for UMAP and LISI metrics)
+    if compute_umap or clisi_keys or ilisi_keys:
+        print("\n" + "=" * 60)
+        print("STEP 4: NEIGHBORS + UMAP")
+        print("=" * 60)
+        
+        sc.pp.neighbors(combined, use_rep="concept_cls_embedding", n_neighbors=30)
+    
+    # Step 5: UMAP - always save to scratch
+    if compute_umap:
+        sc.tl.umap(combined, min_dist=0.3, random_state=0)
+        
+        # Build filename
+        umap_dir = os.path.join(FIGURES_PATH, model_name)
+        
+        # Build dataset string for filename
+        datasets_parts = []
+        for ds in datasets:
+            if ds == "atlas" and atlas_panels:
+                for panel in atlas_panels:
+                    datasets_parts.append(f"atlas-{panel}")
+            else:
+                datasets_parts.append(ds)
+        datasets_str = "_".join(datasets_parts)
+        
+        # Plot by dataset
+        plot_umap(
+            combined,
+            color="dataset",
+            title=f"UMAP by Dataset ({model_name})",
+            out_png=os.path.join(umap_dir, f"{datasets_str}_dataset.png"),
+        )
+        
+        # Plot by cell_type only if we have datasets with cell_type (not atlas-only)
+        non_atlas_datasets = [ds for ds in datasets if ds != "atlas"]
+        has_cell_type = any(CONFIG[ds]["has_cell_type"] for ds in non_atlas_datasets) if non_atlas_datasets else False
+        if has_cell_type and "cell_type_mmc_raw" in combined.obs.columns:
+            plot_umap(
+                combined,
+                color="cell_type_mmc_raw",
+                palette=CELL_TYPE_PALETTE,
+                title=f"UMAP by Cell Type ({model_name})",
+                out_png=os.path.join(umap_dir, f"{datasets_str}_celltype.png"),
+            )
+    
+    # Step 6: Compute metrics
+    results = {"model": model_name, "datasets": "_".join(datasets)}
+    if atlas_panels:
+        results["atlas_panels"] = ",".join(atlas_panels)
+    
+    if clisi_keys:
+        print("\n" + "=" * 60)
+        print("STEP 5: cLISI")
+        print("=" * 60)
+        
+        for key in clisi_keys:
+            col = "dataset" if key == "dataset" else "cell_type_mmc_raw"
+            if col not in combined.obs.columns:
+                print(f"⚠️ Skipping cLISI for {key}: column not found")
+                continue
+            results[f"cLISI_{key}"] = compute_clisi(combined, col)
+    
+    if ilisi_keys:
+        print("\n" + "=" * 60)
+        print("STEP 6: iLISI")
+        print("=" * 60)
+        
+        for key in ilisi_keys:
+            col = "dataset" if key == "dataset" else "cell_type_mmc_raw"
+            if col not in combined.obs.columns:
+                print(f"⚠️ Skipping iLISI for {key}: column not found")
+                continue
+            results[f"iLISI_{key}"] = compute_ilisi(combined, col)
+    
+    # Summary
+    print("\n" + "=" * 60)
+    print("📋 RESULTS")
+    print("=" * 60)
+    for k, v in results.items():
+        print(f"   {k}: {v:.4f}" if isinstance(v, float) else f"   {k}: {v}")
+    
+    return combined, results
+
+
+# ============================================================
+# CLI
+# ============================================================
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Embedding generation and analysis pipeline",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    
+    parser.add_argument(
+        "--checkpoint", "-c",
+        required=True,
+        help="Path to model checkpoint"
+    )
+    
+    parser.add_argument(
+        "--datasets", "-d",
+        nargs="+",
+        choices=["isd", "zeng", "zhuang", "atlas"],
+        required=True,
+        help="Datasets to process"
+    )
+    
+    parser.add_argument(
+        "--umap",
+        action="store_true",
+        help="Compute and plot UMAP"
+    )
+    
+    parser.add_argument(
+        "--clisi",
+        nargs="*",
+        choices=["dataset", "cell_type"],
+        help="Compute cLISI for specified keys"
+    )
+    
+    parser.add_argument(
+        "--ilisi",
+        nargs="*",
+        choices=["dataset", "cell_type"],
+        help="Compute iLISI for specified keys"
+    )
+    
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=64,
+        help="Batch size for embedding generation"
+    )
+    
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force regeneration of embeddings even if they exist"
+    )
+    
+    parser.add_argument(
+        "--atlas-panel",
+        nargs="+",
+        choices=["zhuang", "zeng", "isd"],
+        help="Filter atlas to specific gene panel(s). Can specify multiple: --atlas-panel zhuang zeng isd"
+    )
+    
+    args = parser.parse_args()
+    
+    run_pipeline(
+        checkpoint=args.checkpoint,
+        datasets=args.datasets,
+        compute_umap=args.umap,
+        clisi_keys=args.clisi,
+        ilisi_keys=args.ilisi,
+        batch_size=args.batch_size,
+        force_regenerate=args.force,
+        atlas_panels=args.atlas_panel,
+    )
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint", type=str, required=True, help="Path to checkpoint file")
-    parser.add_argument("--adata_path", type=str, required=True, help="Path to the AnnData file (.h5ad)")
-    parser.add_argument("--gene_id_column", type=str, default=None, help="Column name in adata.var to use as gene IDs")
-    parser.add_argument("--output_emb_path", type=str, required=True, help="Path to save embeddings")
-    parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--max_tokens", type=int, default=None, help="Maximum tokens per cell")
-    parser.add_argument("--gene_sampling_strategy", type=str, default=None, help="Gene sampling strategy")
-    args, unknown = parser.parse_known_args()
-    
-    print(f"Loading config from Hydra...")
-    print('overrides:', unknown)
-    with initialize(version_base=None, config_path="./conf"):
-        cfg = compose(config_name="config", overrides=unknown)
-    
-    gpu_info = torch.cuda.get_device_properties(0)
-    print(f"GPU Type: {gpu_info.name}")
-    
-    output_emb_path = Path(args.output_emb_path)
-    
-    if (output_emb_path / 'cell_embs_cls.npy').exists():
-        print(f"Embeddings already exist in {output_emb_path}")
-        exit(0)
-    
-    print(f"Using checkpoint: {args.checkpoint}")
-    
-    result, cell_ids = get_embs(
-        cfg=cfg, 
-        ckpt_path=args.checkpoint, 
-        adata_path=args.adata_path,
-        gene_id_column=args.gene_id_column,
-        batch_size=args.batch_size,
-        max_tokens=args.max_tokens,
-        gene_sampling_strategy=args.gene_sampling_strategy,
-    )
-    
-    print(f"Saving embeddings to {output_emb_path}...")
-    os.makedirs(output_emb_path, exist_ok=True)
-    
-    np.save(output_emb_path / "cell_ids.npy", cell_ids)
-    np.save(output_emb_path / 'cell_embs_cls.npy', result['cls_cell_emb'])
-    np.save(output_emb_path / 'cell_embs_mean.npy', result['mean_cell_emb'])
-    
-    if 'context_sizes' in result:
-        np.save(output_emb_path / 'context_sizes.npy', result['context_sizes'])
-    
-    print(f"Embeddings saved successfully to {output_emb_path}")
-
-
-
-"""
-python -m concept.get_embs \
-  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/t9qa3400/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/abc_atlas_val.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/uniform/abc_atlas_val\
-  --batch_size 64
-
-python -m concept.get_embs \
-  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/t9qa3400/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/abc_atlas_val_zhuang.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/uniform/abc_atlas_val_zhuang\
-  --batch_size 64
-
-python -m concept.get_embs \
-  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/t9qa3400/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/uniform/Zeng \
-  --batch_size 64
-
-python -m concept.get_embs \
-  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/t9qa3400/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zhuang-ABCA-1.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/uniform/Zhuang-ABCA-1 \
-  --batch_size 64
-
-python -m concept.get_embs \
-  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/t9qa3400/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/ISD-1.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/uniform/ISD-1 \
-  --batch_size 64
-
-  
-
-
-
-
-
-
-
-python -m concept.get_embs \
-  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/zp2ksa3s/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/abc_atlas_val.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/weighted/abc_atlas_val\
-  --batch_size 64
-
-python -m concept.get_embs \
-  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/zp2ksa3s/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zeng.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/weighted/Zeng \
-  --batch_size 64
-
-  python -m concept.get_embs \
-  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/zp2ksa3s/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zhuang-ABCA-1.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/weighted/Zhuang-ABCA-1 \
-  --batch_size 64
-
-python -m concept.get_embs \
-  --checkpoint /p/home/jusers/dipippo1/jureca/projects/dipippo1/scConcept/model_checkpoints/zp2ksa3s/steps/step=310000.ckpt \
-  --adata_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/ISD-1.h5ad \
-  --output_emb_path /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/weighted/ISD-1 \
-  --batch_size 64
-  """
+    main()
