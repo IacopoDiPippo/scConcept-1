@@ -256,10 +256,14 @@ def load_dataset(dataset_name: str, embedding_path: str, subsample: Optional[int
     if config["annotation_path"] is not None:
         ann = pd.read_csv(config["annotation_path"])
         
-        # Create cell_id with proper suffix
+        # Create cell_id with proper suffix for adata
         suffix = config.get("cell_id_suffix", f"-{dataset_name}")
         adata.obs["cell_id"] = adata.obs.index.astype(str) + suffix
-        ann["cell_id"] = ann["cell_id"].astype(str) + suffix
+        
+        # For Zeng, also add suffix to annotation CSV (it doesn't have it)
+        # For Zhuang, the annotation CSV already has the full cell_id format
+        if dataset_name == "zeng":
+            ann["cell_id"] = ann["cell_id"].astype(str) + suffix
         
         # Merge annotations
         adata.obs = adata.obs.merge(
