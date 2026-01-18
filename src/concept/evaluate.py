@@ -3,27 +3,27 @@
 Pipeline for generating embeddings, computing UMAP, and calculating metrics (cLISI, iLISI)
 for single-cell datasets (ISD, Zeng, Zhuang, Atlas).
 
-Usage examples:
+Usage examples (run from src/ directory):
     # Generate embeddings for all datasets
-    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets isd zeng zhuang
+    python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets isd zeng zhuang
 
     # Generate embeddings + UMAP for specific combination
-    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets zeng zhuang --umap
+    python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets zeng zhuang --umap
 
     # Full pipeline with metrics
-    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets isd zeng zhuang \\
-        --umap --clisi dataset cell_type --ilisi dataset
+    python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets isd zeng zhuang \\
+        --umap --clisi cell_type --ilisi dataset
 
     # Include Atlas (only dataset metrics, no cell_type)
-    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets zhuang atlas \\
+    python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets zhuang atlas \\
         --umap --clisi dataset --ilisi dataset
 
     # Atlas with single panel filtering
-    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets zhuang atlas \\
+    python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets zhuang atlas \\
         --atlas-panel zhuang --umap --clisi dataset
 
     # Atlas with multiple panels (creates atlas_zhuang and atlas_zeng as separate datasets)
-    python embedding_pipeline.py --checkpoint /path/to/model.ckpt --datasets zhuang zeng atlas \\
+    python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets zhuang zeng atlas \\
         --atlas-panel zhuang zeng --umap --clisi dataset
 """
 
@@ -191,7 +191,7 @@ def embeddings_exist(embedding_path: str) -> bool:
 
 
 def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batch_size: int = 64):
-    """Generate embeddings using get_embs.py directly."""
+    """Generate embeddings using concept.get_embs module."""
     print(f"\n{'='*60}")
     print(f"🚀 Generating embeddings")
     print(f"   Checkpoint: {checkpoint}")
@@ -201,12 +201,8 @@ def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batc
     
     os.makedirs(output_path, exist_ok=True)
     
-    # Get the directory where this script is located
-    script_dir = Path(__file__).parent
-    get_embs_script = script_dir / "get_embs.py"
-    
     cmd = [
-        "python", str(get_embs_script),
+        "python", "-m", "concept.get_embs",
         "--checkpoint", checkpoint,
         "--adata_path", adata_path,
         "--output_emb_path", output_path,
