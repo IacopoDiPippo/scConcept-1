@@ -55,7 +55,7 @@ tempfile.tempdir = TMPDIR
 CONFIG = {
     # Dataset paths
     "isd": {
-        "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/processed/hvg_isd_normed.h5ad",
+        "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/hvg_isd_normed.h5ad",
         "annotation_path": None,  # ISD has cell_type in adata already
         "has_cell_type": True,
         "subsample": 100_000,
