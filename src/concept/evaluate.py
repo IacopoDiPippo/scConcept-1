@@ -191,7 +191,7 @@ def embeddings_exist(embedding_path: str) -> bool:
 
 
 def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batch_size: int = 64):
-    """Generate embeddings using concept.get_embs."""
+    """Generate embeddings using get_embs.py directly."""
     print(f"\n{'='*60}")
     print(f"🚀 Generating embeddings")
     print(f"   Checkpoint: {checkpoint}")
@@ -201,8 +201,12 @@ def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batc
     
     os.makedirs(output_path, exist_ok=True)
     
+    # Get the directory where this script is located
+    script_dir = Path(__file__).parent
+    get_embs_script = script_dir / "get_embs.py"
+    
     cmd = [
-        "python", "-m", "concept.get_embs",
+        "python", str(get_embs_script),
         "--checkpoint", checkpoint,
         "--adata_path", adata_path,
         "--output_emb_path", output_path,
@@ -274,8 +278,11 @@ def load_dataset(dataset_name: str, embedding_path: str, subsample: Optional[int
         adata = adata[mask_valid].copy()
     
     # For ISD, check if cell_type column exists
-    if dataset_name == "isd" and "cell_type" in adata.obs.columns:
-        adata.obs["cell_type_mmc_raw"] = adata.obs["cell_type"]
+    if dataset_name == "isd":
+        if "cell_type_mmc_raw_revised" in adata.obs.columns:
+            adata.obs["cell_type_mmc_raw"] = adata.obs["cell_type_mmc_raw_revised"]
+        elif "cell_type" in adata.obs.columns:
+            adata.obs["cell_type_mmc_raw"] = adata.obs["cell_type"]
     
     # Subsample if needed
     if subsample and adata.n_obs > subsample:
