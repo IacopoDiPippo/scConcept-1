@@ -1,6 +1,5 @@
 train:
-  - abc_atlas.h5ad
+  - abc_atlas_train.h5ad
 val:
-  #Zeng.h5ad
-  - abc_atlas.h5ad
+  - abc_atlas_val.h5ad
   

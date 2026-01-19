@@ -20,7 +20,7 @@ profiler:
   
 PATH:
   PROJECT_PATH: /p/scratch/cjinm16/dipippo1/scConcept
-  PROJECT_DATA_PATH: /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/train_val_data
+  PROJECT_DATA_PATH: /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw
   CHECKPOINT_ROOT: ${PATH.PROJECT_PATH}/model_checkpoints
   DATASET_PATH: ${PATH.PROJECT_DATA_PATH}
   ADATA_PATH: ${PATH.DATASET_PATH}

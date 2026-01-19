@@ -75,7 +75,7 @@ CONFIG = {
         "cell_id_suffix": "-Zhuang-ABCA-1",
     },
     "atlas": {
-        "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/abc_atlas_val.h5ad",
+        "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/train_val_data/abc_atlas_val.h5ad",
         "annotation_path": None,
         "has_cell_type": False,  # Atlas has no cell type annotation
         "subsample": 100_000,
