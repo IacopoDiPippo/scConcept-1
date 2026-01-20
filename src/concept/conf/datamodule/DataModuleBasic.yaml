@@ -81,7 +81,7 @@ dataset:
         panel_size_max: 250
         panel_overlap: False
     spatial_custom2:  
-        split_key: val_spatial22  
+        split_key: val_spatial2
         max_tokens: 500
         variable_size: False
         panel_selection: preselected
