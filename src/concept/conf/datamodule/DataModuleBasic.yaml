@@ -116,7 +116,7 @@ dataloader:
       num_workers: 3
       pin_memory: False
       drop_last: True
-      num_samples: 800000
+      num_samples: 100000
     within_P800_B256:
       within_group_sampling: "dataset"
       batch_size: 256
@@ -124,7 +124,7 @@ dataloader:
       num_workers: 3
       pin_memory: False
       drop_last: True
-      num_samples: 800000
+      num_samples: 100000
     within_ZengGenePanel:
       within_group_sampling: "dataset"
       batch_size: 256
@@ -132,7 +132,7 @@ dataloader:
       num_workers: 3
       pin_memory: False
       drop_last: True
-      num_samples: 800000
+      num_samples: 100000
     within_ZhuangGenePanel:
       within_group_sampling: "dataset"
       batch_size: 256
@@ -140,7 +140,7 @@ dataloader:
       num_workers: 3
       pin_memory: False
       drop_last: True
-      num_samples: 800000
+      num_samples: 100000
     within_ISDGenePanel:
       within_group_sampling: "dataset"
       batch_size: 256
@@ -148,7 +148,7 @@ dataloader:
       num_workers: 3
       pin_memory: False
       drop_last: True
-      num_samples: 80000
+      num_samples: 100000
 
 
 
