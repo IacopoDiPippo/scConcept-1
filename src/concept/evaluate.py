@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Pipeline for generating embeddings, computing UMAP, and calculating metrics (cLISI, iLISI)
-for single-cell datasets (ISD, Zeng, Zhuang, Atlas).
+for single-cell datasets (ISD, Zeng, Zhuang, Atlas, Atlas2).
 
 Usage examples (run from src/ directory):
     # Generate embeddings for all datasets
@@ -25,6 +25,18 @@ Usage examples (run from src/ directory):
     # Atlas with multiple panels (creates atlas_zhuang and atlas_zeng as separate datasets)
     python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets zhuang zeng atlas \\
         --atlas-panel zhuang zeng --umap --clisi dataset
+
+    # Atlas with all panels + normal atlas
+    python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets atlas \\
+        --atlas-panel all --umap --ilisi dataset
+
+    # Compare atlas and atlas2
+    python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets atlas atlas2 \\
+        --umap --ilisi dataset
+
+    # Atlas2 with panels
+    python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets atlas2 \\
+        --atlas2-panel zhuang zeng --umap --ilisi dataset
 """
 
 import argparse
@@ -78,6 +90,12 @@ CONFIG = {
         "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/train_val_data/abc_atlas_val.h5ad",
         "annotation_path": None,
         "has_cell_type": False,  # Atlas has no cell type annotation
+        "subsample": 100_000,
+    },
+    "atlas2": {
+        "adata_path": "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/train_val_data/abc_atlas_2_val.h5ad",
+        "annotation_path": None,
+        "has_cell_type": False,  # Atlas2 has no cell type annotation
         "subsample": 100_000,
     },
 }
@@ -146,9 +164,13 @@ def get_embedding_path(model_name: str, dataset_name: str, panel: str = None) ->
     return os.path.join(EMBEDDINGS_BASE_PATH, model_name, dataset_name)
 
 
-def get_filtered_atlas_path(panel: str) -> str:
+def get_filtered_atlas_path(atlas_name: str, panel: str) -> str:
     """Get path for panel-filtered atlas file."""
-    return os.path.join(FILTERED_ATLAS_PATH, f"abc_atlas_val_{panel}.h5ad")
+    # atlas_name is either "atlas" or "atlas2"
+    if atlas_name == "atlas":
+        return os.path.join(FILTERED_ATLAS_PATH, f"abc_atlas_val_{panel}.h5ad")
+    else:  # atlas2
+        return os.path.join(FILTERED_ATLAS_PATH, f"abc_atlas_2_val_{panel}.h5ad")
 
 
 def filter_adata_by_panel(adata_path: str, panel_path: str, output_path: str) -> str:
@@ -375,6 +397,11 @@ def compute_ilisi(adata, batch_key: str) -> float:
     return score
 
 
+def is_atlas_dataset(ds: str) -> bool:
+    """Check if dataset is an atlas type (atlas or atlas2)."""
+    return ds in ["atlas", "atlas2"]
+
+
 # ============================================================
 # MAIN PIPELINE
 # ============================================================
@@ -388,6 +415,7 @@ def run_pipeline(
     batch_size: int = 64,
     force_regenerate: bool = False,
     atlas_panels: List[str] = None,
+    atlas2_panels: List[str] = None,
 ):
     """Run the full pipeline."""
     import anndata as ad
@@ -397,14 +425,28 @@ def run_pipeline(
     
     # Handle 'all' option for atlas panels
     include_normal_atlas = False
+    include_normal_atlas2 = False
+    
     if atlas_panels:
         if "all" in atlas_panels:
             atlas_panels = ["zhuang", "zeng", "isd"]
             include_normal_atlas = True
+    
+    if atlas2_panels:
+        if "all" in atlas2_panels:
+            atlas2_panels = ["zhuang", "zeng", "isd"]
+            include_normal_atlas2 = True
         
-    panel_info = f" (panels: {', '.join(atlas_panels)})" if atlas_panels else ""
-    if include_normal_atlas:
-        panel_info += " + normal"
+    panel_info = ""
+    if atlas_panels:
+        panel_info += f" (atlas panels: {', '.join(atlas_panels)})"
+        if include_normal_atlas:
+            panel_info += " + normal"
+    if atlas2_panels:
+        panel_info += f" (atlas2 panels: {', '.join(atlas2_panels)})"
+        if include_normal_atlas2:
+            panel_info += " + normal"
+    
     print(f"\n🚀 Pipeline: {model_name} | Datasets: {', '.join(datasets)}{panel_info}\n")
     
     # Validate datasets
@@ -418,8 +460,18 @@ def run_pipeline(
         atlas_panels = None
         include_normal_atlas = False
     
+    if atlas2_panels and "atlas2" not in datasets:
+        print(f"⚠️ Warning: --atlas2-panel specified but 'atlas2' not in datasets. Ignoring panels.")
+        atlas2_panels = None
+        include_normal_atlas2 = False
+    
     if atlas_panels:
         for panel in atlas_panels:
+            if panel not in PANELS:
+                raise ValueError(f"Unknown panel: {panel}. Available: {list(PANELS.keys())}")
+    
+    if atlas2_panels:
+        for panel in atlas2_panels:
             if panel not in PANELS:
                 raise ValueError(f"Unknown panel: {panel}. Available: {list(PANELS.keys())}")
     
@@ -438,7 +490,7 @@ def run_pipeline(
                     print(f"✅ atlas_{panel}: embeddings exist at {emb_path}")
                 else:
                     # First, create filtered atlas if needed
-                    filtered_atlas_path = get_filtered_atlas_path(panel)
+                    filtered_atlas_path = get_filtered_atlas_path("atlas", panel)
                     os.makedirs(os.path.dirname(filtered_atlas_path), exist_ok=True)
                     filter_adata_by_panel(
                         adata_path=CONFIG["atlas"]["adata_path"],
@@ -465,20 +517,46 @@ def run_pipeline(
                         output_path=emb_path,
                         batch_size=batch_size,
                     )
-        elif ds != "atlas":
-            emb_path = get_embedding_path(model_name, ds)
+        
+        elif ds == "atlas2" and atlas2_panels:
+            # Generate embeddings for each panel
+            for panel in atlas2_panels:
+                emb_path = get_embedding_path(model_name, ds, panel=panel)
+                
+                if embeddings_exist(emb_path) and not force_regenerate:
+                    print(f"✅ atlas2_{panel}: embeddings exist at {emb_path}")
+                else:
+                    # First, create filtered atlas2 if needed
+                    filtered_atlas_path = get_filtered_atlas_path("atlas2", panel)
+                    os.makedirs(os.path.dirname(filtered_atlas_path), exist_ok=True)
+                    filter_adata_by_panel(
+                        adata_path=CONFIG["atlas2"]["adata_path"],
+                        panel_path=PANELS[panel],
+                        output_path=filtered_atlas_path,
+                    )
+                    # Then generate embeddings
+                    generate_embeddings(
+                        checkpoint=checkpoint,
+                        adata_path=filtered_atlas_path,
+                        output_path=emb_path,
+                        batch_size=batch_size,
+                    )
             
-            if embeddings_exist(emb_path) and not force_regenerate:
-                print(f"✅ {ds}: embeddings exist at {emb_path}")
-            else:
-                generate_embeddings(
-                    checkpoint=checkpoint,
-                    adata_path=CONFIG[ds]["adata_path"],
-                    output_path=emb_path,
-                    batch_size=batch_size,
-                )
-        else:
-            # Atlas without panel
+            # Also generate normal atlas2 if requested
+            if include_normal_atlas2:
+                emb_path = get_embedding_path(model_name, ds)
+                if embeddings_exist(emb_path) and not force_regenerate:
+                    print(f"✅ atlas2: embeddings exist at {emb_path}")
+                else:
+                    generate_embeddings(
+                        checkpoint=checkpoint,
+                        adata_path=CONFIG[ds]["adata_path"],
+                        output_path=emb_path,
+                        batch_size=batch_size,
+                    )
+        
+        elif not is_atlas_dataset(ds) or (ds == "atlas" and not atlas_panels) or (ds == "atlas2" and not atlas2_panels):
+            # Normal dataset or atlas without panels
             emb_path = get_embedding_path(model_name, ds)
             
             if embeddings_exist(emb_path) and not force_regenerate:
@@ -502,7 +580,7 @@ def run_pipeline(
             # Load each panel-filtered atlas separately
             for panel in atlas_panels:
                 emb_path = get_embedding_path(model_name, ds, panel=panel)
-                filtered_atlas_path = get_filtered_atlas_path(panel)
+                filtered_atlas_path = get_filtered_atlas_path("atlas", panel)
                 key = f"atlas_{panel}"
                 adatas[key] = load_dataset_custom(
                     dataset_name=key,
@@ -522,12 +600,50 @@ def run_pipeline(
                     subsample=CONFIG[ds].get("subsample"),
                     has_cell_type=False,
                 )
-        elif ds != "atlas" or not atlas_panels:
+        
+        elif ds == "atlas2" and atlas2_panels:
+            # Load each panel-filtered atlas2 separately
+            for panel in atlas2_panels:
+                emb_path = get_embedding_path(model_name, ds, panel=panel)
+                filtered_atlas_path = get_filtered_atlas_path("atlas2", panel)
+                key = f"atlas2_{panel}"
+                adatas[key] = load_dataset_custom(
+                    dataset_name=key,
+                    adata_path=filtered_atlas_path,
+                    embedding_path=emb_path,
+                    subsample=CONFIG[ds].get("subsample"),
+                    has_cell_type=False,
+                )
+            
+            # Also load normal atlas2 if requested
+            if include_normal_atlas2:
+                emb_path = get_embedding_path(model_name, ds)
+                adatas["atlas2"] = load_dataset_custom(
+                    dataset_name="atlas2",
+                    adata_path=CONFIG[ds]["adata_path"],
+                    embedding_path=emb_path,
+                    subsample=CONFIG[ds].get("subsample"),
+                    has_cell_type=False,
+                )
+        
+        elif not is_atlas_dataset(ds):
+            # Normal dataset (zeng, zhuang, isd)
             emb_path = get_embedding_path(model_name, ds)
             adatas[ds] = load_dataset(
                 dataset_name=ds,
                 embedding_path=emb_path,
                 subsample=CONFIG[ds].get("subsample"),
+            )
+        
+        else:
+            # Atlas or atlas2 without panels
+            emb_path = get_embedding_path(model_name, ds)
+            adatas[ds] = load_dataset_custom(
+                dataset_name=ds,
+                adata_path=CONFIG[ds]["adata_path"],
+                embedding_path=emb_path,
+                subsample=CONFIG[ds].get("subsample"),
+                has_cell_type=False,
             )
     
     # Step 3: Combine datasets
@@ -571,6 +687,11 @@ def run_pipeline(
                     datasets_parts.append(f"atlas-{panel}")
                 if include_normal_atlas:
                     datasets_parts.append("atlas")
+            elif ds == "atlas2" and atlas2_panels:
+                for panel in atlas2_panels:
+                    datasets_parts.append(f"atlas2-{panel}")
+                if include_normal_atlas2:
+                    datasets_parts.append("atlas2")
             else:
                 datasets_parts.append(ds)
         datasets_str = "_".join(datasets_parts)
@@ -584,7 +705,7 @@ def run_pipeline(
         )
         
         # Plot by cell_type only if we have datasets with cell_type (not atlas-only)
-        non_atlas_datasets = [ds for ds in datasets if ds != "atlas"]
+        non_atlas_datasets = [ds for ds in datasets if not is_atlas_dataset(ds)]
         has_cell_type = any(CONFIG[ds]["has_cell_type"] for ds in non_atlas_datasets) if non_atlas_datasets else False
         if has_cell_type and "cell_type_mmc_raw" in combined.obs.columns:
             plot_umap(
@@ -599,6 +720,8 @@ def run_pipeline(
     results = {"model": model_name, "datasets": "_".join(datasets)}
     if atlas_panels:
         results["atlas_panels"] = ",".join(atlas_panels)
+    if atlas2_panels:
+        results["atlas2_panels"] = ",".join(atlas2_panels)
     
     if clisi_keys:
         print("\n" + "=" * 60)
@@ -654,7 +777,7 @@ def main():
     parser.add_argument(
         "--datasets", "-d",
         nargs="+",
-        choices=["isd", "zeng", "zhuang", "atlas"],
+        choices=["isd", "zeng", "zhuang", "atlas", "atlas2"],
         required=True,
         help="Datasets to process"
     )
@@ -699,6 +822,13 @@ def main():
         help="Filter atlas to specific gene panel(s). Use 'all' to include atlas_zhuang, atlas_zeng, atlas_isd AND atlas normal"
     )
     
+    parser.add_argument(
+        "--atlas2-panel",
+        nargs="+",
+        choices=["zhuang", "zeng", "isd", "all"],
+        help="Filter atlas2 to specific gene panel(s). Use 'all' to include atlas2_zhuang, atlas2_zeng, atlas2_isd AND atlas2 normal"
+    )
+    
     args = parser.parse_args()
     
     run_pipeline(
@@ -710,6 +840,7 @@ def main():
         batch_size=args.batch_size,
         force_regenerate=args.force,
         atlas_panels=args.atlas_panel,
+        atlas2_panels=args.atlas2_panel,
     )
 
 
