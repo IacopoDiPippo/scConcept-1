@@ -92,7 +92,7 @@ class AnnDataModule(L.LightningDataModule):
                     keys_to_cache=keys_to_cache,
                     join=join,
                     encode_labels=True,
-                    parallel=True,
+                    parallel=False,
                     obsm_keys=precomp_embs_key
                 )
 
