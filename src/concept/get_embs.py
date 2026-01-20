@@ -60,7 +60,7 @@ if __name__ == "__main__":
     
     print(f"Loading config from Hydra...")
     print('overrides:', unknown)
-    with initialize(version_base=None, config_path="./old_conf"):
+    with initialize(version_base=None, config_path="./conf"):
         cfg = compose(config_name="config", overrides=unknown)
     
     gpu_info = torch.cuda.get_device_properties(0)

@@ -1,5 +1,10 @@
 train:
   - abc_atlas_train.h5ad
-val:
+val_transcriptomics:
   - abc_atlas_val.h5ad
+val_spatial:
+  - Zeng_val.h5ad
+  - ISD-1_val.h5ad
+val_spatial2:
+  - Zhuang-ABCA-1_val.h5ad
   

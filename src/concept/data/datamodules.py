@@ -28,7 +28,7 @@ class AnnDataModule(L.LightningDataModule):
         dataset_kwargs: Dict = {},
         dataloader_kwargs: Dict = {},
         val_loader_names = [],
-        force_in_memory: bool = False,   # ✅ NUOVO FLAG
+        force_in_memory: bool = False,
         probabilistic_panel_sampling: bool = False,
         probabilistic_panel_csv: Optional[str] = None,
     ):
@@ -63,7 +63,7 @@ class AnnDataModule(L.LightningDataModule):
                 dataset_kwargs['train'], split_input=True
             )
 
-            train_sources = split['train']  # ⛔ NON MODIFICARE split
+            train_sources = split['train']
 
             if self.force_in_memory:
                 assert within_group_sampling == 'dataset', \
@@ -101,13 +101,22 @@ class AnnDataModule(L.LightningDataModule):
             )
 
         # =========================
-        # VAL
+        # VAL - MODIFIED TO SUPPORT MULTIPLE SPLITS
         # =========================
-        if 'val' in split and split['val'] is not None and 'val' in dataset_kwargs:
+        if 'val' in dataset_kwargs:  # 🆕 Rimosso controllo su split['val']
             self.val_datasets = {}
-            val_sources = split['val']  # ⛔ NON MODIFICARE split
 
             for val_name, val_kwargs in dataset_kwargs['val'].items():
+                # 🆕 Prendi split_key dalla config, default 'val'
+                split_key = val_kwargs.pop('split_key', 'val')
+                
+                # 🆕 Verifica che lo split esista
+                if split_key not in split or split[split_key] is None:
+                    raise ValueError(f"Split key '{split_key}' not found in split dict for val loader '{val_name}'. Available splits: {list(split.keys())}")
+                
+                val_sources = split[split_key]  # 🆕 Usa split specifico
+                print(f"📊 VAL loader '{val_name}' using split '{split_key}' with {len(val_sources)} files")
+                
                 within_group_sampling = dataloader_kwargs['val'][val_name]['within_group_sampling']
                 keys_to_cache = [within_group_sampling] if within_group_sampling else []
 
@@ -279,87 +288,3 @@ class AnnDataModule(L.LightningDataModule):
                                 **dataloader_kwargs)
         print(f'Creating test dataloader by {len(dataloader)} batches of size {dataloader_kwargs["batch_size"]} over {len(self.test_dataset)} samples; sum of indices: {sum(self.test_dataset.collection.indices)}')
         return dataloader
-    
-
-
-class InferenceAnnDataModule(L.LightningDataModule):
-
-    def __init__(
-        self,
-        adata_path: str,
-        tokenizer,
-        columns,
-        normalization="log1p",
-        max_tokens: int = 5000,      # should match training
-        batch_size: int = 256,
-        num_workers: int = 4,
-    ):
-        super().__init__()
-        self.adata_path = adata_path
-        self.tokenizer = tokenizer
-        self.columns = columns
-        self.normalization = normalization
-        self.max_tokens = max_tokens
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-
-    # -------------------------
-    # Setup
-    # -------------------------
-    def setup(self, stage=None):
-
-        print(f"📂 Loading AnnData for inference: {self.adata_path}")
-        adata = ad.read_h5ad(self.adata_path)
-
-        # -------------------------
-        # Wrap AnnData like training
-        # -------------------------
-        self.collection = InMemoryCollection(
-            adata_list=[adata],
-            obs_keys=self.columns,
-            layers_keys=["X"],
-            obsm_keys=None,
-            keys_to_cache=[],
-        )
-
-        # -------------------------
-        # TokenizedDataset EXACTLY as in training
-        # -------------------------
-        self.dataset = TokenizedDataset(
-            collection=self.collection,
-            tokenizer=self.tokenizer,
-            normalization=self.normalization,
-            obs_keys=self.columns,
-            obsm_key=None,
-        )
-
-        # -------------------------
-        # Collate WITHOUT augmentation
-        # -------------------------
-        self.collate_fn = Collate(
-            tokenizer=self.tokenizer,
-            panels_path=None,           # disable panel logic entirely
-            max_tokens=self.max_tokens,
-            split_input=False,          # 🔥 KEY: single-view inference
-            gene_sampling_strategy="top-nonzero",
-            panel_selection="random",   # unused because split_input=False
-            panel_filter_regex=".*",
-            model_speed_sanity_check=False,
-        )
-
-    # -------------------------
-    # Predict loader
-    # -------------------------
-    def predict_dataloader(self):
-
-        sampler = SequentialSampler(self.dataset)
-
-        return DataLoader(
-            self.dataset,
-            sampler=sampler,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            drop_last=False,
-            pin_memory=False,
-            collate_fn=self.collate_fn,
-        )
