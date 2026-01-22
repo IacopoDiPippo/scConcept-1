@@ -159,6 +159,10 @@ def train(cfg: DictConfig):
             ckpt_path=ckpt_path
         )
 
+    print(">>> About to call trainer.fit()")
+    print(f">>> Rank: {trainer.global_rank}")
+    import sys
+    sys.stdout.flush()
 
     # ------------------------
     # FIT
