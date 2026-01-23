@@ -159,23 +159,6 @@ def train(cfg: DictConfig):
             ckpt_path=ckpt_path
         )
 
-    print(">>> About to call trainer.fit()")
-    print(f">>> Rank: {trainer.global_rank}")
-    import sys
-    sys.stdout.flush()
-
-    print(">>> PROBE: fetching 1 batch from train loader")
-    train_loader = datamodule.train_dataloader()
-    batch = next(iter(train_loader))
-    print(">>> PROBE: got train batch OK")
-    import sys; sys.stdout.flush()
-
-    print(">>> PROBE: fetching 1 batch from val loader[0]")
-    val_loaders = datamodule.val_dataloader()
-    batch2 = next(iter(val_loaders[0]))
-    print(">>> PROBE: got val batch OK")
-    sys.stdout.flush()
-
 
     # ------------------------
     # FIT
