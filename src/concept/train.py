@@ -44,6 +44,11 @@ def train(cfg: DictConfig):
     Args:
         cfg: Configuration dictionary.
     """
+    import os, torch
+
+    if torch.cuda.is_available() and "LOCAL_RANK" in os.environ:
+        torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
+
     # Validate configuration constraints
     scConcept.validate_config(cfg)
     
