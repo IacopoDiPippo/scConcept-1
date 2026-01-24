@@ -507,7 +507,10 @@ class ContrastiveModel(BaseTransformerModel):
     
 
     def training_step(self, batch, batch_idx):
-        print("STEEEP")
+        print(
+            f"[RANK={self.global_rank}] batch_idx={batch_idx} global_step={self.global_step}",
+            flush=True
+        )
         if self.data_loading_speed_sanity_check:
             loss = torch.tensor(0.0, device=self.device, requires_grad=True)
             self.log_metrics("train/loss", loss)
