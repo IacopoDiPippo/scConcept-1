@@ -176,6 +176,7 @@ def train(cfg: DictConfig):
                         strategy=DDPStrategy(find_unused_parameters=True),
                         precision='bf16-mixed', 
                         use_distributed_sampler=False,
+                        num_sanity_val_steps=0
                         )
 
 
