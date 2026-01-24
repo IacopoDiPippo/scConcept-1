@@ -44,10 +44,6 @@ def train(cfg: DictConfig):
     Args:
         cfg: Configuration dictionary.
     """
-    import os, torch
-
-    if torch.cuda.is_available() and "LOCAL_RANK" in os.environ:
-        torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
 
     # Validate configuration constraints
     scConcept.validate_config(cfg)
@@ -123,6 +119,11 @@ def train(cfg: DictConfig):
             ModelCheckpoint(dirpath=os.path.join(CHECKPOINT_PATH, 'steps'), filename='{step}', every_n_train_steps=10000, monitor='train/loss', save_top_k=-1), # save a checkpoint every 10K steps
         ],
     }
+    
+    print("SLURM_NTASKS_PER_NODE =", os.environ.get("SLURM_NTASKS_PER_NODE"))
+    print("CUDA_VISIBLE_DEVICES =", os.environ.get("CUDA_VISIBLE_DEVICES"))
+    print("cfg devices =", cfg.model.training.devices)
+
     trainer = L.Trainer(**trainer_kwargs, 
                         strategy=DDPStrategy(find_unused_parameters=True),
                         precision='bf16-mixed', 
