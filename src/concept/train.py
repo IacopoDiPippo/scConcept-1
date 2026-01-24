@@ -125,7 +125,7 @@ def train(cfg: DictConfig):
     print("cfg devices =", cfg.model.training.devices)
 
     trainer = L.Trainer(**trainer_kwargs, 
-                        strategy=DDPStrategy(find_unused_parameters=True),
+                        strategy="ddp",
                         precision='bf16-mixed', 
                         use_distributed_sampler=False,
                         )
