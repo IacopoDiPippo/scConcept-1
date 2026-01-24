@@ -37,6 +37,40 @@ import wandb
 from hydra import compose, initialize
 
 
+from lightning.pytorch.callbacks import Callback
+import os, torch
+
+class DebugCallback(Callback):
+    def _p(self, msg):
+        rank = int(os.environ.get("SLURM_PROCID", -1))
+        local = int(os.environ.get("SLURM_LOCALID", -1))
+        print(f"[CALLBACK rank={rank} local={local}] {msg}", flush=True)
+
+    def on_fit_start(self, trainer, pl_module):
+        self._p("on_fit_start")
+
+    def on_sanity_check_start(self, trainer, pl_module):
+        self._p("on_sanity_check_start")
+
+    def on_train_start(self, trainer, pl_module):
+        self._p("on_train_start")
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        self._p("on_train_epoch_start")
+
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+        if batch_idx == 0:
+            self._p("on_train_batch_start (batch_idx=0)")
+
+    def on_before_backward(self, trainer, pl_module, loss):
+        self._p("on_before_backward (first time)")
+        # stampalo una volta sola
+        trainer.callbacks.remove(self)
+
+    def on_validation_start(self, trainer, pl_module):
+        self._p("on_validation_start")
+
+
 def train(cfg: DictConfig):
     """
     Train a model using the configuration in cfg.
@@ -221,35 +255,3 @@ if __name__ == "__main__":
     train(cfg)
 
 
-from lightning.pytorch.callbacks import Callback
-import os, torch
-
-class DebugCallback(Callback):
-    def _p(self, msg):
-        rank = int(os.environ.get("SLURM_PROCID", -1))
-        local = int(os.environ.get("SLURM_LOCALID", -1))
-        print(f"[CALLBACK rank={rank} local={local}] {msg}", flush=True)
-
-    def on_fit_start(self, trainer, pl_module):
-        self._p("on_fit_start")
-
-    def on_sanity_check_start(self, trainer, pl_module):
-        self._p("on_sanity_check_start")
-
-    def on_train_start(self, trainer, pl_module):
-        self._p("on_train_start")
-
-    def on_train_epoch_start(self, trainer, pl_module):
-        self._p("on_train_epoch_start")
-
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
-        if batch_idx == 0:
-            self._p("on_train_batch_start (batch_idx=0)")
-
-    def on_before_backward(self, trainer, pl_module, loss):
-        self._p("on_before_backward (first time)")
-        # stampalo una volta sola
-        trainer.callbacks.remove(self)
-
-    def on_validation_start(self, trainer, pl_module):
-        self._p("on_validation_start")
