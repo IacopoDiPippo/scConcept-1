@@ -45,6 +45,15 @@ def train(cfg: DictConfig):
         cfg: Configuration dictionary.
     """
 
+    import os, torch
+    print("PROC", os.getpid(),
+        "SLURM_PROCID", os.environ.get("SLURM_PROCID"),
+        "LOCALID", os.environ.get("SLURM_LOCALID"),
+        "CUDA_VISIBLE_DEVICES", os.environ.get("CUDA_VISIBLE_DEVICES"),
+        "torch.cuda.device_count()", torch.cuda.device_count(),
+        flush=True)
+
+
     # Validate configuration constraints
     scConcept.validate_config(cfg)
     
@@ -165,7 +174,8 @@ def train(cfg: DictConfig):
             ckpt_path=ckpt_path
         )
 
-
+    import os
+    print("RANK", os.environ.get("SLURM_PROCID"), "before trainer.fit", flush=True)
     # ------------------------
     # FIT
     # ------------------------
