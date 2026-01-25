@@ -141,7 +141,8 @@ def train(cfg: DictConfig):
             #logger.experiment.config.update(OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
 
     profiler = get_profiler(CHECKPOINT_PATH) if cfg.profiler.enabled else None
-
+    print("PROFILER DIR:", profiler.dirpath, flush=True)
+    
     trainer_kwargs = {
         'max_steps': cfg.model.training.max_steps,
         'accelerator': cfg.model.training.accelerator,
