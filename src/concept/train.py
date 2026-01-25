@@ -35,7 +35,7 @@ from concept.data import AnnDataModule
 from concept import ContrastiveModel, scConcept
 import wandb
 from hydra import compose, initialize
-
+from lightning.pytorch.profilers import PyTorchProfiler
 
 from lightning.pytorch.callbacks import Callback
 import os, torch
@@ -172,11 +172,25 @@ def train(cfg: DictConfig):
     logging.getLogger("lightning.pytorch").setLevel(logging.DEBUG)
     logging.getLogger("lightning.fabric").setLevel(logging.DEBUG)
 
+    profiler = PyTorchProfiler(
+        dirpath=CHECKPOINT_PATH,          # o una cartella tipo "./prof"
+        filename="pytorch_profiler",      # crea file .txt e trace
+        export_to_chrome=True,            # ti crea trace.json
+        record_functions=True,
+        profile_memory=True,
+        with_stack=False,
+        with_flops=True,
+    )
+    trainer_kwargs["limit_train_batches"] = 50
+    trainer_kwargs["limit_val_batches"] = 10
+    trainer_kwargs["max_epochs"] = 1
+
     trainer = L.Trainer(**trainer_kwargs, 
                         strategy=DDPStrategy(find_unused_parameters=True),
                         precision='bf16-mixed', 
                         use_distributed_sampler=False,
-                        num_sanity_val_steps=0
+                        num_sanity_val_steps=0,
+                        profiler=profiler,
                         )
 
 
