@@ -135,6 +135,7 @@ def train(cfg: DictConfig):
         logger = WandbLogger(name=cfg.wandb.run_name, entity=cfg.wandb.entity, project=cfg.wandb.project, save_dir=cfg.PATH.PROJECT_PATH, log_model=False)
     
     CHECKPOINT_PATH = "dummy"
+    profiler = None
     if rank_zero_only.rank == 0:
         CHECKPOINT_PATH = os.path.join(cfg.PATH.CHECKPOINT_ROOT, logger.experiment.id if cfg.wandb.enabled else 'dummy')
         #if cfg.wandb.enabled:
