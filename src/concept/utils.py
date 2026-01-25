@@ -14,6 +14,7 @@ def get_profiler(checkpoint_path: str):
         #swith_flops=True,
 
         # SAFE MODE (evita crash kineto)
+        export_to_chrome=True,
         with_stack=False,
         record_shapes=False,
         profile_memory=False,
@@ -22,7 +23,7 @@ def get_profiler(checkpoint_path: str):
         schedule=schedule(skip_first=0, wait=1, warmup=1, active=2, repeat=1),
         #schedule = schedule(skip_first=100, wait=10, warmup=10, active=20, repeat=1),
         row_limit = -1,
-        sort_by_key="cuda_time",
+        #sort_by_key="cuda_time",
         # export_to_chrome=False
         ) 
     return pl_profiler
