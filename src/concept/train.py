@@ -142,7 +142,7 @@ def train(cfg: DictConfig):
 
     profiler = get_profiler(CHECKPOINT_PATH) if cfg.profiler.enabled else None
     print("PROFILER DIR:", profiler.dirpath, flush=True)
-    
+
     trainer_kwargs = {
         'max_steps': cfg.model.training.max_steps,
         'accelerator': cfg.model.training.accelerator,
@@ -177,7 +177,10 @@ def train(cfg: DictConfig):
                         strategy=DDPStrategy(find_unused_parameters=True),
                         precision='bf16-mixed', 
                         use_distributed_sampler=False,
-                        num_sanity_val_steps=0
+                        num_sanity_val_steps=0,
+                        limit_train_batches=10,   # o anche 5
+                        limit_val_batches=0,
+                        max_epochs=1,
                         )
 
 
