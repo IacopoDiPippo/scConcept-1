@@ -175,7 +175,7 @@ def train(cfg: DictConfig):
     logging.getLogger("lightning.fabric").setLevel(logging.DEBUG)
     
     trainer = L.Trainer(**trainer_kwargs, 
-                        strategy=DDPStrategy(find_unused_parameters=True),
+                        strategy=DDPStrategy(find_unused_parameters=False),
                         precision='bf16-mixed', 
                         use_distributed_sampler=False,
                         num_sanity_val_steps=0,

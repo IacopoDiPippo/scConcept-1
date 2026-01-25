@@ -344,11 +344,6 @@ class ContrastiveModel(BaseTransformerModel):
     def _encode_values(self, values: Tensor) -> Tensor:
         return self.value_encoder(values)
 
-    def on_fit_start(self):
-        import os
-        print("RANK", os.environ.get("SLURM_PROCID"), "on_fit_start", flush=True)
-
-
     def _step(self, batch, batch_idx, stage='train', log_prefix='train'):
         assert stage in ['train', 'val'], f"Invalid stage: {stage}"
                         
@@ -507,10 +502,6 @@ class ContrastiveModel(BaseTransformerModel):
     
 
     def training_step(self, batch, batch_idx):
-        print(
-            f"[RANK={self.global_rank}] batch_idx={batch_idx} global_step={self.global_step}",
-            flush=True
-        )
         if self.data_loading_speed_sanity_check:
             loss = torch.tensor(0.0, device=self.device, requires_grad=True)
             self.log_metrics("train/loss", loss)
