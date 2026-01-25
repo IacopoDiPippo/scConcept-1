@@ -178,9 +178,8 @@ def train(cfg: DictConfig):
                         precision='bf16-mixed', 
                         use_distributed_sampler=False,
                         num_sanity_val_steps=0,
-                        limit_train_batches=10,   # o anche 5
                         limit_val_batches=0,
-                        max_epochs=1,
+                        max_epochs=2,
                         )
 
 
