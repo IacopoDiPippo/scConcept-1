@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import time
 from typing import Optional, List
 import wandb
 import lightning as L
@@ -501,24 +502,45 @@ class ContrastiveModel(BaseTransformerModel):
         return loss
     
 
+    
+
     def training_step(self, batch, batch_idx):
+        # --- timing: start step ---
+        t_total_start = time.perf_counter()
+
         if self.data_loading_speed_sanity_check:
             loss = torch.tensor(0.0, device=self.device, requires_grad=True)
             self.log_metrics("train/loss", loss)
             return loss
-        
+
         if batch_idx % self.log_every_n_steps == 0:
             sample_stats = self._get_sample_stats(batch)
             self.sample_stats['train'].append(sample_stats)
-        
+
+        # --- timing: compute part (_step) ---
+        t_compute_start = time.perf_counter()
         loss = self._step(batch, batch_idx, stage='train', log_prefix='train')
-        
-                
+
+        # sync GPU per misurare davvero il tempo compute
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        compute_time = time.perf_counter() - t_compute_start
+
         if self.debug and 'panel_1' in batch and 'panel_2' in batch and batch_idx % self.log_every_n_steps == 0:
             self._validate_panels(batch['panel_1'], batch['panel_2'])
-            
-        
+
+        total_time = time.perf_counter() - t_total_start
+        data_overhead_time = total_time - compute_time
+
+        # stampa solo i primi step per non spammare
+        if batch_idx < 30:
+            self.print(
+                f"[timing] step={batch_idx} total={total_time:.3f}s "
+                f"compute={compute_time:.3f}s approx_data+overhead={data_overhead_time:.3f}s"
+            )
+
         return loss
+
 
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
