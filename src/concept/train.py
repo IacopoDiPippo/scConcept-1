@@ -40,7 +40,7 @@ from lightning.pytorch.profilers import PyTorchProfiler
 from lightning.pytorch.callbacks import Callback
 import os, torch
 
-class DebugCallback(Callback):
+"""class DebugCallback(Callback):
     def _p(self, msg):
         rank = int(os.environ.get("SLURM_PROCID", -1))
         local = int(os.environ.get("SLURM_LOCALID", -1))
@@ -68,7 +68,7 @@ class DebugCallback(Callback):
         trainer.callbacks.remove(self)
 
     def on_validation_start(self, trainer, pl_module):
-        self._p("on_validation_start")
+        self._p("on_validation_start")"""
 
 
 def train(cfg: DictConfig):
@@ -162,7 +162,7 @@ def train(cfg: DictConfig):
             ModelCheckpoint(dirpath=CHECKPOINT_PATH, filename='min_val_loss', monitor='val/loss_epoch', mode='min', every_n_epochs=1, save_top_k=1),
             ModelCheckpoint(dirpath=os.path.join(CHECKPOINT_PATH, 'epochs'), filename='{epoch}', every_n_epochs=1, save_on_train_epoch_end=True, save_top_k=-1, save_last='link'),
             ModelCheckpoint(dirpath=os.path.join(CHECKPOINT_PATH, 'steps'), filename='{step}', every_n_train_steps=10000, monitor='train/loss', save_top_k=-1), # save a checkpoint every 10K steps
-            DebugCallback(),
+            #DebugCallback(),
         ],
     }
     

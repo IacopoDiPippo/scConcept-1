@@ -33,7 +33,7 @@ training:
   accelerator: gpu
   devices: 4
   num_nodes: 1
-  limit_train_batches: 10
+  limit_train_batches: 300
   val_check_interval: 1.0
   check_val_every_n_epoch: 1
   accumulate_grad_batches: 1
