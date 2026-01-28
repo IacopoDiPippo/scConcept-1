@@ -6,7 +6,7 @@ defaults:
 
 wandb:
   enabled: true
-  run_name: uniform_small_batch256
+  run_name: weighted_small_batch256
   entity: iacopodipippo-technical-university-of-munich
   project: scConcept
 
