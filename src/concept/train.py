@@ -165,14 +165,7 @@ def train(cfg: DictConfig):
             #DebugCallback(),
         ],
     }
-    
-    print("SLURM_NTASKS_PER_NODE =", os.environ.get("SLURM_NTASKS_PER_NODE"))
-    print("CUDA_VISIBLE_DEVICES =", os.environ.get("CUDA_VISIBLE_DEVICES"))
-    print("cfg devices =", cfg.model.training.devices)
 
-    import logging
-    logging.getLogger("lightning.pytorch").setLevel(logging.DEBUG)
-    logging.getLogger("lightning.fabric").setLevel(logging.DEBUG)
     
     trainer = L.Trainer(**trainer_kwargs, 
                         strategy=DDPStrategy(find_unused_parameters=True),
@@ -218,8 +211,6 @@ def train(cfg: DictConfig):
             ckpt_path=ckpt_path
         )
 
-    import os
-    print("RANK", os.environ.get("SLURM_PROCID"), "before trainer.fit", flush=True)
     # ------------------------
     # FIT
     # ------------------------
