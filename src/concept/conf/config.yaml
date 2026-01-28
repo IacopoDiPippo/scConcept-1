@@ -16,7 +16,7 @@ initialize:
   checkpoint: null
 
 profiler:
-  enabled: True # Use profiler only for debugging
+  enabled: False # Use profiler only for debugging
   
 PATH:
   PROJECT_PATH: /p/scratch/cjinm16/dipippo1/scConcept
