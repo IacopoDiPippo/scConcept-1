@@ -34,7 +34,6 @@ class WithinGroupSampler(Sampler):
         assert n_invalid_batches == 0, f'Number of invalid batches: {n_invalid_batches}'        
 
     def _create_batches(self):
-        print("Starting _create_batches...")
         self.batches = []
         count = 0
         for obs in self.obs_list:
@@ -53,6 +52,4 @@ class WithinGroupSampler(Sampler):
         shuffle(self.batches)
         if self.num_samples is not None:
             self.batches = self.batches[:self.num_samples//self.batch_size]
-        print(f"Created {len(self.batches)} batches, now validating...")
         self._validate_batches()
-        print("Validation complete!")
