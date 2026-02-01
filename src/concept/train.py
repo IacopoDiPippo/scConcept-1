@@ -11,14 +11,6 @@ os.environ["WANDB_DATA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/data"
 os.environ["WANDB_MEDIA_DIR"] = "/p/scratch/cjinm16/dipippo1/wandb/media"
 
 
-# =========================
-# HARD-CODED RESUME SWITCH
-# =========================
-DO_RESUME = False   # <-- metti False per partire da zero
-DO_VALIDATE_BEFORE_FIT = False
-
-RESUME_RUN_ID = "zp2ksa3s"     #zp2ksa3s is weighted sampling, t9qa3400 is random sampling
-RESUME_CKPT =  "steps/step=310000.ckpt"    #"steps/step=10000.ckpt"
 
 import sys
 import lightning as L
@@ -82,7 +74,12 @@ def train(cfg: DictConfig):
             os.path.join(cfg.PATH.ADATA_PATH, file)
             for file in filenames
         ]
+    
+    DO_RESUME = cfg.initialize_2.resume if hasattr(cfg, 'initialize_2') else False   # <-- metti False per partire da zero
+    DO_VALIDATE_BEFORE_FIT = cfg.initialize_2.do_validate_first if hasattr(cfg, 'initialize_2') else False
 
+    RESUME_RUN_ID = cfg.initialize_2.run_id if hasattr(cfg, 'initialize_2') else None
+    RESUME_CKPT =  cfg.initialize_2.checkpoint if hasattr(cfg, 'initialize_2') else None
 
     datamodule_args = {    
         'split': split,

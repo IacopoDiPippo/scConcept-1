@@ -15,6 +15,12 @@ initialize:
   run_id: null
   checkpoint: null
 
+initialize_2:
+  resume: False
+  run_id: zp2ksa3s
+  checkpoint: epochs/last.ckpt
+  do_validate_first: False
+
 profiler:
   enabled: False # Use profiler only for debugging
   

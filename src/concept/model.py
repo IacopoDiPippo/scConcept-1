@@ -549,6 +549,7 @@ class ContrastiveModel(BaseTransformerModel):
             self.log_metrics("val/loss", loss)
             return loss
         
+
         val_name = self.val_loader_names[dataloader_idx]
         prefix = prefix=f'val/{val_name}' if val_name != 'same' else 'val'
         
