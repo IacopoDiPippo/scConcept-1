@@ -8,10 +8,11 @@ from pathlib import Path
 import argparse
 import anndata as ad
 from hydra import compose, initialize
-
+import anndata as ad
+import scanpy as sc
 
 def get_embs(cfg: DictConfig, ckpt_path: str, adata_path: str, gene_id_column: str = None,
-             batch_size: int = 32, max_tokens: int = None, gene_sampling_strategy: str = None):
+             batch_size: int = 32, max_tokens: int = None, gene_sampling_strategy: str = None, subsample: int = None):
     """
     Extract embeddings using scConcept API extract_embeddings method.
     
@@ -34,7 +35,12 @@ def get_embs(cfg: DictConfig, ckpt_path: str, adata_path: str, gene_id_column: s
     
     print(f"Loading AnnData from {adata_path}...")
     adata = ad.read_h5ad(adata_path)
-        
+    
+    # Subsample if requested
+    if subsample and adata.n_obs > subsample:
+        print(f"Subsampling {adata.n_obs:,} -> {subsample:,} cells...")
+        sc.pp.subsample(adata, n_obs=subsample, random_state=0)
+
     print(f"Extracting embeddings with batch_size={batch_size}, max_tokens={max_tokens}, gene_sampling_strategy={gene_sampling_strategy}")
     result = concept.extract_embeddings(
         adata=adata,
