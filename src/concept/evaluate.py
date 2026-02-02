@@ -266,7 +266,12 @@ def add_concept_embeddings(adata, embedding_path: str, name: str = "Dataset"):
     df_mean = pd.DataFrame(emb_mean, index=cell_ids)
     df_cls = pd.DataFrame(emb_cls, index=cell_ids)
     
-    # Align with adata.obs_names
+    # FILTRA adata per tenere solo le cellule con embedding
+    common_cells = adata.obs_names.intersection(cell_ids)
+    print(f"   {name}: {len(common_cells):,}/{adata.n_obs:,} cells have embeddings")
+    adata = adata[common_cells].copy()
+    
+    # Ora allinea
     adata.obsm["concept_mean_embedding"] = df_mean.loc[adata.obs_names].to_numpy()
     adata.obsm["concept_cls_embedding"] = df_cls.loc[adata.obs_names].to_numpy()
     
