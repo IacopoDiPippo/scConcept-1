@@ -36,7 +36,6 @@ Usage examples (run from src/ directory):
 """
 
 import argparse
-from html import parser
 import os
 import subprocess
 import sys
@@ -219,7 +218,7 @@ def embeddings_exist(embedding_path: str) -> bool:
 
 
 def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batch_size: int = 64, subsample: int = None):
-    """Generate embeddings using concept.get_embs module."""
+    """Generate embeddings using concept.get_embs module (Hydra-based)."""
     print(f"\n{'='*60}")
     print(f"🚀 Generating embeddings")
     print(f"   Checkpoint: {checkpoint}")
@@ -231,17 +230,18 @@ def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batc
     
     os.makedirs(output_path, exist_ok=True)
     
+    # concept.get_embs uses Hydra, so we need key=value syntax (not --key value)
     cmd = [
         "python", "-m", "concept.get_embs",
-        "--checkpoint", checkpoint,
-        "--adata_path", adata_path,
-        "--output_emb_path", output_path,
-        "--batch_size", str(batch_size),
+        f"checkpoint={checkpoint}",
+        f"adata_path={adata_path}",
+        f"output_emb_path={output_path}",
+        f"batch_size={batch_size}",
     ]
     
-    # AGGIUNGI SUBSAMPLE SE SPECIFICATO
+    # Add subsample if specified (Hydra syntax)
     if subsample:
-        cmd.extend(["--subsample", str(subsample)])
+        cmd.append(f"subsample={subsample}")
     
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=False)
@@ -266,12 +266,12 @@ def add_concept_embeddings(adata, embedding_path: str, name: str = "Dataset"):
     df_mean = pd.DataFrame(emb_mean, index=cell_ids)
     df_cls = pd.DataFrame(emb_cls, index=cell_ids)
     
-    # FILTRA adata per tenere solo le cellule con embedding
+    # Filter adata to keep only cells with embeddings
     common_cells = adata.obs_names.intersection(cell_ids)
     print(f"   {name}: {len(common_cells):,}/{adata.n_obs:,} cells have embeddings")
     adata = adata[common_cells].copy()
     
-    # Ora allinea
+    # Align embeddings
     adata.obsm["concept_mean_embedding"] = df_mean.loc[adata.obs_names].to_numpy()
     adata.obsm["concept_cls_embedding"] = df_cls.loc[adata.obs_names].to_numpy()
     
@@ -280,7 +280,6 @@ def add_concept_embeddings(adata, embedding_path: str, name: str = "Dataset"):
 
 def load_dataset(dataset_name: str, embedding_path: str, subsample: Optional[int] = None):
     """Load a dataset with its embeddings and annotations."""
-    import anndata as ad
     import scanpy as sc
     
     config = CONFIG[dataset_name]
@@ -338,7 +337,6 @@ def load_dataset(dataset_name: str, embedding_path: str, subsample: Optional[int
 def load_dataset_custom(dataset_name: str, adata_path: str, embedding_path: str, 
                         subsample: Optional[int] = None, has_cell_type: bool = False):
     """Load a dataset from custom path (for filtered atlas)."""
-    import anndata as ad
     import scanpy as sc
     
     print(f"📂 Loading {dataset_name} (custom)...")
@@ -825,9 +823,6 @@ def main():
         choices=["zhuang", "zeng", "isd", "all"],
         help="Filter atlas2_train to specific gene panel(s). Use 'all' for all panels + normal"
     )
-
-    # Aggiungi questo argomento nel parser
-    parser.add_argument("--subsample", type=int, default=None, help="Subsample to N cells before embedding")
     
     args = parser.parse_args()
     
