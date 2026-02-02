@@ -36,6 +36,7 @@ Usage examples (run from src/ directory):
 """
 
 import argparse
+from html import parser
 import os
 import subprocess
 import sys
@@ -217,13 +218,15 @@ def embeddings_exist(embedding_path: str) -> bool:
     return all(os.path.exists(os.path.join(embedding_path, f)) for f in required_files)
 
 
-def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batch_size: int = 64):
+def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batch_size: int = 64, subsample: int = None):
     """Generate embeddings using concept.get_embs module."""
     print(f"\n{'='*60}")
     print(f"🚀 Generating embeddings")
     print(f"   Checkpoint: {checkpoint}")
     print(f"   Input: {adata_path}")
     print(f"   Output: {output_path}")
+    if subsample:
+        print(f"   Subsample: {subsample:,} cells")
     print(f"{'='*60}\n")
     
     os.makedirs(output_path, exist_ok=True)
@@ -235,6 +238,10 @@ def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batc
         "--output_emb_path", output_path,
         "--batch_size", str(batch_size),
     ]
+    
+    # AGGIUNGI SUBSAMPLE SE SPECIFICATO
+    if subsample:
+        cmd.extend(["--subsample", str(subsample)])
     
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=False)
@@ -536,6 +543,7 @@ def run_pipeline(
                         adata_path=filtered_atlas_path,
                         output_path=emb_path,
                         batch_size=batch_size,
+                        subsample=CONFIG[ds].get("subsample"),
                     )
             
             # Also generate normal atlas if requested
@@ -549,6 +557,7 @@ def run_pipeline(
                         adata_path=CONFIG[ds]["adata_path"],
                         output_path=emb_path,
                         batch_size=batch_size,
+                        subsample=CONFIG[ds].get("subsample"),
                     )
         
         else:
@@ -563,6 +572,7 @@ def run_pipeline(
                     adata_path=CONFIG[ds]["adata_path"],
                     output_path=emb_path,
                     batch_size=batch_size,
+                    subsample=CONFIG[ds].get("subsample"),
                 )
     
     # Step 2: Load datasets
@@ -810,6 +820,9 @@ def main():
         choices=["zhuang", "zeng", "isd", "all"],
         help="Filter atlas2_train to specific gene panel(s). Use 'all' for all panels + normal"
     )
+
+    # Aggiungi questo argomento nel parser
+    parser.add_argument("--subsample", type=int, default=None, help="Subsample to N cells before embedding")
     
     args = parser.parse_args()
     
