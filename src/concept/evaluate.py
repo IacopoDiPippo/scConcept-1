@@ -218,7 +218,7 @@ def embeddings_exist(embedding_path: str) -> bool:
 
 
 def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batch_size: int = 64, subsample: int = None):
-    """Generate embeddings using concept.get_embs module (Hydra-based)."""
+    """Generate embeddings using concept.get_embs module."""
     print(f"\n{'='*60}")
     print(f"🚀 Generating embeddings")
     print(f"   Checkpoint: {checkpoint}")
@@ -230,7 +230,7 @@ def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batc
     
     os.makedirs(output_path, exist_ok=True)
     
-    # concept.get_embs uses Hydra, so we need key=value syntax (not --key value)
+    # SOLO argparse syntax (--key value), NON Hydra (key=value)
     cmd = [
         "python", "-m", "concept.get_embs",
         "--checkpoint", checkpoint,
@@ -238,13 +238,9 @@ def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batc
         "--output_emb_path", output_path,
         "--batch_size", str(batch_size),
     ]
-
+    
     if subsample:
         cmd.extend(["--subsample", str(subsample)])
-    
-    # Add subsample if specified (Hydra syntax)
-    if subsample:
-        cmd.append(f"subsample={subsample}")
     
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=False)
