@@ -233,11 +233,14 @@ def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batc
     # concept.get_embs uses Hydra, so we need key=value syntax (not --key value)
     cmd = [
         "python", "-m", "concept.get_embs",
-        f"checkpoint={checkpoint}",
-        f"adata_path={adata_path}",
-        f"output_emb_path={output_path}",
-        f"batch_size={batch_size}",
+        "--checkpoint", checkpoint,
+        "--adata_path", adata_path,
+        "--output_emb_path", output_path,
+        "--batch_size", str(batch_size),
     ]
+
+    if subsample:
+        cmd.extend(["--subsample", str(subsample)])
     
     # Add subsample if specified (Hydra syntax)
     if subsample:

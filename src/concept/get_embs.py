@@ -62,6 +62,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--max_tokens", type=int, default=None, help="Maximum tokens per cell")
     parser.add_argument("--gene_sampling_strategy", type=str, default=None, help="Gene sampling strategy")
+    parser.add_argument("--subsample", type=int, default=None, 
+                    help="Subsample to N cells before extracting embeddings")
     args, unknown = parser.parse_known_args()
     
     print(f"Loading config from Hydra...")
@@ -81,14 +83,15 @@ if __name__ == "__main__":
     print(f"Using checkpoint: {args.checkpoint}")
     
     result, cell_ids = get_embs(
-        cfg=cfg, 
-        ckpt_path=args.checkpoint, 
-        adata_path=args.adata_path,
-        gene_id_column=args.gene_id_column,
-        batch_size=args.batch_size,
-        max_tokens=args.max_tokens,
-        gene_sampling_strategy=args.gene_sampling_strategy,
-    )
+      cfg=cfg,
+      ckpt_path=args.checkpoint,
+      adata_path=args.adata_path,
+      gene_id_column=args.gene_id_column,
+      batch_size=args.batch_size,
+      max_tokens=args.max_tokens,
+      gene_sampling_strategy=args.gene_sampling_strategy,
+      subsample=args.subsample,  # <-- aggiungi questo
+  )
     
     print(f"Saving embeddings to {output_emb_path}...")
     os.makedirs(output_emb_path, exist_ok=True)
