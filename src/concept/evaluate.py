@@ -33,6 +33,16 @@ Usage examples (run from src/ directory):
     # Compare train vs val
     python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets atlas atlas_train \\
         --umap --ilisi dataset
+
+    #Regenerates    embeddings even if they exist
+    python -m concept.evaluate \
+    -c /path/to/checkpoint.ckpt \
+    -d zeng zhuang isd \
+    -s 100000 \
+    --umap \
+    --clisi cell_type \
+    --ilisi dataset \
+    --force  # <-- this regenerates embeddings even if they exist
 """
 
 import argparse
@@ -157,12 +167,84 @@ CELL_TYPE_PALETTE = {
 # HELPER FUNCTIONS
 # ============================================================
 
+def get_checkpoint_dir(checkpoint_path: str) -> Path:
+    """
+    Get the checkpoint directory containing run_info.yaml and overrides.txt.
+    
+    Checkpoint structure:
+    model_checkpoints/split_mouse/session_1/big_uniform__9n2bnnri/
+    ├── run_info.yaml
+    ├── overrides.txt
+    ├── epochs/
+    │   └── last.ckpt
+    └── steps/
+        └── step=310000.ckpt
+    
+    So if checkpoint is .../steps/step=310000.ckpt, we go up 2 levels.
+    If checkpoint is .../epochs/last.ckpt, we go up 2 levels.
+    If checkpoint is .../min_val_loss.ckpt (directly in folder), we go up 1 level.
+    """
+    path = Path(checkpoint_path)
+    
+    # Check if parent is 'steps' or 'epochs'
+    if path.parent.name in ['steps', 'epochs']:
+        return path.parent.parent
+    else:
+        return path.parent
+
+
+def get_hydra_overrides(checkpoint_path: str) -> List[str]:
+    """
+    Read overrides.txt from checkpoint directory and return as list for Hydra.
+    
+    Returns list like: ['model.dim_model=512', 'model.dim_hid=1024', ...]
+    """
+    ckpt_dir = get_checkpoint_dir(checkpoint_path)
+    overrides_file = ckpt_dir / "overrides.txt"
+    
+    if not overrides_file.exists():
+        print(f"⚠️ WARNING: No overrides.txt found at {overrides_file}")
+        print(f"   Using default config. This may cause errors if model architecture doesn't match!")
+        return []
+    
+    with open(overrides_file, 'r') as f:
+        overrides_str = f.read().strip()
+    
+    # Split by spaces (each override is space-separated)
+    overrides = overrides_str.split()
+    
+    # Filter out wandb and initialize_2 overrides (not needed for inference)
+    filtered = []
+    for override in overrides:
+        if override.startswith('wandb.'):
+            continue
+        if override.startswith('+initialize_2.'):
+            continue
+        filtered.append(override)
+    
+    print(f"📋 Loaded overrides from {overrides_file}:")
+    for o in filtered:
+        print(f"   {o}")
+    
+    return filtered
+
+
 def get_model_name(checkpoint_path: str) -> str:
-    """Extract model name from checkpoint path for organizing embeddings."""
+    """
+    Extract model name from checkpoint path for organizing embeddings.
+    
+    Uses the folder name which now includes model info:
+    .../split_mouse/session_2/big_uniform__z6csa92l/steps/step=310000.ckpt
+    -> big_uniform__z6csa92l_step310000
+    """
     path = Path(checkpoint_path)
     step_name = path.stem.replace("=", "")  # step=310000 -> step310000
-    model_dir = path.parent.parent.name  # zp2ksa3s
-    return f"{model_dir}_{step_name}"
+    
+    # Get the model folder name (e.g., big_uniform__z6csa92l)
+    ckpt_dir = get_checkpoint_dir(checkpoint_path)
+    model_folder = ckpt_dir.name
+    
+    return f"{model_folder}_{step_name}"
 
 
 def get_embedding_path(model_name: str, dataset_name: str, panel: str = None) -> str:
@@ -217,8 +299,25 @@ def embeddings_exist(embedding_path: str) -> bool:
     return all(os.path.exists(os.path.join(embedding_path, f)) for f in required_files)
 
 
-def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batch_size: int = 64, subsample: int = None):
-    """Generate embeddings using concept.get_embs module."""
+def generate_embeddings(
+    checkpoint: str, 
+    adata_path: str, 
+    output_path: str, 
+    hydra_overrides: List[str],
+    batch_size: int = 64, 
+    subsample: int = None
+):
+    """
+    Generate embeddings using concept.get_embs module.
+    
+    Args:
+        checkpoint: Path to model checkpoint
+        adata_path: Path to AnnData file
+        output_path: Path to save embeddings
+        hydra_overrides: List of Hydra overrides for model config
+        batch_size: Batch size for inference
+        subsample: Number of cells to subsample (None for all)
+    """
     print(f"\n{'='*60}")
     print(f"🚀 Generating embeddings")
     print(f"   Checkpoint: {checkpoint}")
@@ -230,7 +329,7 @@ def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batc
     
     os.makedirs(output_path, exist_ok=True)
     
-    # SOLO argparse syntax (--key value), NON Hydra (key=value)
+    # Build command with argparse arguments
     cmd = [
         "python", "-m", "concept.get_embs",
         "--checkpoint", checkpoint,
@@ -241,6 +340,9 @@ def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batc
     
     if subsample:
         cmd.extend(["--subsample", str(subsample)])
+    
+    # Add Hydra overrides (these go at the end, without --)
+    cmd.extend(hydra_overrides)
     
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=False)
@@ -443,12 +545,16 @@ def run_pipeline(
     atlas2_panels: List[str] = None,
     atlas_train_panels: List[str] = None,
     atlas2_train_panels: List[str] = None,
+    subsample: Optional[int] = None,
 ):
     """Run the full pipeline."""
     import anndata as ad
     import scanpy as sc
     
     model_name = get_model_name(checkpoint)
+    
+    # Load Hydra overrides from checkpoint directory
+    hydra_overrides = get_hydra_overrides(checkpoint)
     
     # Map dataset to its panels argument
     panels_map = {
@@ -544,8 +650,9 @@ def run_pipeline(
                         checkpoint=checkpoint,
                         adata_path=filtered_atlas_path,
                         output_path=emb_path,
+                        hydra_overrides=hydra_overrides,
                         batch_size=batch_size,
-                        subsample=CONFIG[ds].get("subsample"),
+                        subsample=subsample,
                     )
             
             # Also generate normal atlas if requested
@@ -558,8 +665,9 @@ def run_pipeline(
                         checkpoint=checkpoint,
                         adata_path=CONFIG[ds]["adata_path"],
                         output_path=emb_path,
+                        hydra_overrides=hydra_overrides,
                         batch_size=batch_size,
-                        subsample=CONFIG[ds].get("subsample"),
+                        subsample=subsample,
                     )
         
         else:
@@ -573,8 +681,9 @@ def run_pipeline(
                     checkpoint=checkpoint,
                     adata_path=CONFIG[ds]["adata_path"],
                     output_path=emb_path,
+                    hydra_overrides=hydra_overrides,
                     batch_size=batch_size,
-                    subsample=CONFIG[ds].get("subsample"),
+                    subsample=subsample,
                 )
     
     # Step 2: Load datasets
@@ -734,6 +843,42 @@ def run_pipeline(
     for k, v in results.items():
         print(f"   {k}: {v:.4f}" if isinstance(v, float) else f"   {k}: {v}")
     
+    # Save results to file
+    results_dir = os.path.join(FIGURES_PATH, model_name)
+    os.makedirs(results_dir, exist_ok=True)
+    results_file = os.path.join(results_dir, f"{datasets_str}_results.txt")
+    
+    with open(results_file, 'w') as f:
+        f.write("=" * 60 + "\n")
+        f.write(f"EVALUATION RESULTS\n")
+        f.write("=" * 60 + "\n\n")
+        
+        f.write(f"Model: {model_name}\n")
+        f.write(f"Checkpoint: {checkpoint}\n")
+        f.write(f"Datasets: {', '.join(datasets)}\n")
+        if subsample:
+            f.write(f"Subsample (embeddings): {subsample:,}\n")
+        f.write("\n")
+        
+        # Write panel info if any
+        for ds_name, panels in panels_map.items():
+            if panels:
+                f.write(f"{ds_name} panels: {', '.join(panels)}\n")
+        f.write("\n")
+        
+        f.write("-" * 60 + "\n")
+        f.write("METRICS\n")
+        f.write("-" * 60 + "\n\n")
+        
+        # Write metrics
+        for k, v in results.items():
+            if k.startswith("cLISI") or k.startswith("iLISI"):
+                f.write(f"{k}: {v:.4f}\n")
+        
+        f.write("\n" + "=" * 60 + "\n")
+    
+    print(f"\n💾 Results saved to: {results_file}")
+    
     return combined, results
 
 
@@ -823,6 +968,13 @@ def main():
         help="Filter atlas2_train to specific gene panel(s). Use 'all' for all panels + normal"
     )
     
+    parser.add_argument(
+        "--subsample", "-s",
+        type=int,
+        default=100_000,
+        help="Number of cells to subsample for embedding generation (use 0 or -1 for no subsampling)"
+    )
+
     args = parser.parse_args()
     
     run_pipeline(
@@ -837,6 +989,7 @@ def main():
         atlas2_panels=args.atlas2_panel,
         atlas_train_panels=args.atlas_train_panel,
         atlas2_train_panels=args.atlas2_train_panel,
+        subsample=args.subsample if args.subsample > 0 else None,
     )
 
 
