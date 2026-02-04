@@ -982,10 +982,9 @@ def main():
     )
 
     parser.add_argument(
-        "--mean", 
-        type=bool,
-        default=False,
-        help="Whether to use mean embedding for each dataset"
+        "--mean",
+        action="store_true",
+        help="Use mean embedding instead of CLS embedding"
     )
 
     args = parser.parse_args()
