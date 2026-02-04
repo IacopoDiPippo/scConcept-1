@@ -546,6 +546,7 @@ def run_pipeline(
     atlas_train_panels: List[str] = None,
     atlas2_train_panels: List[str] = None,
     subsample: Optional[int] = None,
+    mean: bool = False,
 ):
     """Run the full pipeline."""
     import anndata as ad
@@ -764,7 +765,12 @@ def run_pipeline(
         print("STEP 4: NEIGHBORS + UMAP")
         print("=" * 60)
         
-        sc.pp.neighbors(combined, use_rep="concept_cls_embedding", n_neighbors=30)
+        if mean:
+            sc.pp.neighbors(combined, use_rep="concept_mean_embedding", n_neighbors=30)
+            mean_name = "mean"
+        else:
+            sc.pp.neighbors(combined, use_rep="concept_cls_embedding", n_neighbors=30)
+            mean_name = "cls"
     
     # Step 5: UMAP - always save to scratch
     if compute_umap:
@@ -791,7 +797,7 @@ def run_pipeline(
             combined,
             color="dataset",
             title=f"UMAP by Dataset ({model_name})",
-            out_png=os.path.join(umap_dir, f"{datasets_str}_dataset.png"),
+            out_png=os.path.join(umap_dir, f"{datasets_str}_dataset_{mean_name}.png"),
         )
         
         # Plot by cell_type only if we have datasets with cell_type (not atlas-only)
@@ -846,7 +852,7 @@ def run_pipeline(
     # Save results to file
     results_dir = os.path.join(FIGURES_PATH, model_name)
     os.makedirs(results_dir, exist_ok=True)
-    results_file = os.path.join(results_dir, f"{datasets_str}_results.txt")
+    results_file = os.path.join(results_dir, f"{datasets_str}_results_{mean_name}.txt")
     
     with open(results_file, 'w') as f:
         f.write("=" * 60 + "\n")
@@ -975,6 +981,13 @@ def main():
         help="Number of cells to subsample for embedding generation (use 0 or -1 for no subsampling)"
     )
 
+    parser.add_argument(
+        "--mean", 
+        type=bool,
+        default=False,
+        help="Whether to use mean embedding for each dataset"
+    )
+
     args = parser.parse_args()
     
     run_pipeline(
@@ -990,6 +1003,7 @@ def main():
         atlas_train_panels=args.atlas_train_panel,
         atlas2_train_panels=args.atlas2_train_panel,
         subsample=args.subsample if args.subsample > 0 else None,
+        mean=args.mean,
     )
 
 
