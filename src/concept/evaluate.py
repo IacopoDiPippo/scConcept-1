@@ -125,6 +125,8 @@ PANELS = {
     "isd": "/p/scratch/cjinm16/dipippo1/scConcept/panels/ISD.csv",
 }
 
+PANELS_DIR = "/p/scratch/cjinm16/dipippo1/scConcept/panels"
+
 # Path for filtered atlas files (separate directory)
 FILTERED_ATLAS_PATH = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/atlas_filtered"
 
@@ -570,15 +572,21 @@ def run_pipeline(
     for ds_name in ["atlas", "atlas2", "atlas_train", "atlas2_train"]:
         panels = panels_map.get(ds_name)
         include_normal[ds_name] = False
-        if panels and "all" in panels:
+        if panels and "all_all" in panels:
+            # Load all panels from directory
+            all_panels = [f.replace('.csv', '').lower().split('_')[0] 
+                        for f in os.listdir(PANELS_DIR) if f.endswith('.csv')]
+            panels_map[ds_name] = list(set(all_panels))  # unique panels
+            include_normal[ds_name] = True
+        elif panels and "all" in panels:
             panels_map[ds_name] = ["zhuang", "zeng", "isd"]
             include_normal[ds_name] = True
-    
-    # Update local variables
-    atlas_panels = panels_map["atlas"]
-    atlas2_panels = panels_map["atlas2"]
-    atlas_train_panels = panels_map["atlas_train"]
-    atlas2_train_panels = panels_map["atlas2_train"]
+            
+            # Update local variables
+            atlas_panels = panels_map["atlas"]
+            atlas2_panels = panels_map["atlas2"]
+            atlas_train_panels = panels_map["atlas_train"]
+            atlas2_train_panels = panels_map["atlas2_train"]
     
     # Build panel info string
     panel_info = ""
@@ -949,7 +957,7 @@ def main():
     parser.add_argument(
         "--atlas-panel",
         nargs="+",
-        choices=["zhuang", "zeng", "isd", "all"],
+        choices=["zhuang", "zeng", "isd", "all", "all_all"],
         help="Filter atlas to specific gene panel(s). Use 'all' to include atlas_zhuang, atlas_zeng, atlas_isd AND atlas normal"
     )
     
