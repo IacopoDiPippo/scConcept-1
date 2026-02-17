@@ -33,16 +33,6 @@ Usage examples (run from src/ directory):
     # Compare train vs val
     python -m concept.evaluate --checkpoint /path/to/model.ckpt --datasets atlas atlas_train \\
         --umap --ilisi dataset
-
-    #Regenerates    embeddings even if they exist
-    python -m concept.evaluate \
-    -c /path/to/checkpoint.ckpt \
-    -d zeng zhuang isd \
-    -s 100000 \
-    --umap \
-    --clisi cell_type \
-    --ilisi dataset \
-    --force  # <-- this regenerates embeddings even if they exist
 """
 
 import argparse
@@ -118,14 +108,21 @@ CONFIG = {
     },
 }
 
-# Panel paths for filtering atlas
-PANELS = {
-    "zhuang": "/p/scratch/cjinm16/dipippo1/scConcept/panels/Zhuang_ABCA1.csv",
-    "zeng": "/p/scratch/cjinm16/dipippo1/scConcept/panels/Zeng_Panel.csv",
-    "isd": "/p/scratch/cjinm16/dipippo1/scConcept/panels/ISD.csv",
-}
-
+# Panel paths for filtering atlas - load dynamically from directory
 PANELS_DIR = "/p/scratch/cjinm16/dipippo1/scConcept/panels"
+
+def load_panels_from_dir(panels_dir: str) -> dict:
+    """Load all panel CSV files from directory."""
+    panels = {}
+    if os.path.exists(panels_dir):
+        for f in os.listdir(panels_dir):
+            if f.endswith('.csv'):
+                # Use first part of filename as key: "Zhuang_ABCA1.csv" -> "zhuang"
+                panel_name = f.replace('.csv', '').lower().split('_')[0]
+                panels[panel_name] = os.path.join(panels_dir, f)
+    return panels
+
+PANELS = load_panels_from_dir(PANELS_DIR)
 
 # Path for filtered atlas files (separate directory)
 FILTERED_ATLAS_PATH = "/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/concept_embeddings/atlas_filtered"
@@ -169,84 +166,12 @@ CELL_TYPE_PALETTE = {
 # HELPER FUNCTIONS
 # ============================================================
 
-def get_checkpoint_dir(checkpoint_path: str) -> Path:
-    """
-    Get the checkpoint directory containing run_info.yaml and overrides.txt.
-    
-    Checkpoint structure:
-    model_checkpoints/split_mouse/session_1/big_uniform__9n2bnnri/
-    ├── run_info.yaml
-    ├── overrides.txt
-    ├── epochs/
-    │   └── last.ckpt
-    └── steps/
-        └── step=310000.ckpt
-    
-    So if checkpoint is .../steps/step=310000.ckpt, we go up 2 levels.
-    If checkpoint is .../epochs/last.ckpt, we go up 2 levels.
-    If checkpoint is .../min_val_loss.ckpt (directly in folder), we go up 1 level.
-    """
-    path = Path(checkpoint_path)
-    
-    # Check if parent is 'steps' or 'epochs'
-    if path.parent.name in ['steps', 'epochs']:
-        return path.parent.parent
-    else:
-        return path.parent
-
-
-def get_hydra_overrides(checkpoint_path: str) -> List[str]:
-    """
-    Read overrides.txt from checkpoint directory and return as list for Hydra.
-    
-    Returns list like: ['model.dim_model=512', 'model.dim_hid=1024', ...]
-    """
-    ckpt_dir = get_checkpoint_dir(checkpoint_path)
-    overrides_file = ckpt_dir / "overrides.txt"
-    
-    if not overrides_file.exists():
-        print(f"⚠️ WARNING: No overrides.txt found at {overrides_file}")
-        print(f"   Using default config. This may cause errors if model architecture doesn't match!")
-        return []
-    
-    with open(overrides_file, 'r') as f:
-        overrides_str = f.read().strip()
-    
-    # Split by spaces (each override is space-separated)
-    overrides = overrides_str.split()
-    
-    # Filter out wandb and initialize_2 overrides (not needed for inference)
-    filtered = []
-    for override in overrides:
-        if override.startswith('wandb.'):
-            continue
-        if override.startswith('+initialize_2.'):
-            continue
-        filtered.append(override)
-    
-    print(f"📋 Loaded overrides from {overrides_file}:")
-    for o in filtered:
-        print(f"   {o}")
-    
-    return filtered
-
-
 def get_model_name(checkpoint_path: str) -> str:
-    """
-    Extract model name from checkpoint path for organizing embeddings.
-    
-    Uses the folder name which now includes model info:
-    .../split_mouse/session_2/big_uniform__z6csa92l/steps/step=310000.ckpt
-    -> big_uniform__z6csa92l_step310000
-    """
+    """Extract model name from checkpoint path for organizing embeddings."""
     path = Path(checkpoint_path)
     step_name = path.stem.replace("=", "")  # step=310000 -> step310000
-    
-    # Get the model folder name (e.g., big_uniform__z6csa92l)
-    ckpt_dir = get_checkpoint_dir(checkpoint_path)
-    model_folder = ckpt_dir.name
-    
-    return f"{model_folder}_{step_name}"
+    model_dir = path.parent.parent.name  # zp2ksa3s
+    return f"{model_dir}_{step_name}"
 
 
 def get_embedding_path(model_name: str, dataset_name: str, panel: str = None) -> str:
@@ -301,37 +226,17 @@ def embeddings_exist(embedding_path: str) -> bool:
     return all(os.path.exists(os.path.join(embedding_path, f)) for f in required_files)
 
 
-def generate_embeddings(
-    checkpoint: str, 
-    adata_path: str, 
-    output_path: str, 
-    hydra_overrides: List[str],
-    batch_size: int = 64, 
-    subsample: int = None
-):
-    """
-    Generate embeddings using concept.get_embs module.
-    
-    Args:
-        checkpoint: Path to model checkpoint
-        adata_path: Path to AnnData file
-        output_path: Path to save embeddings
-        hydra_overrides: List of Hydra overrides for model config
-        batch_size: Batch size for inference
-        subsample: Number of cells to subsample (None for all)
-    """
+def generate_embeddings(checkpoint: str, adata_path: str, output_path: str, batch_size: int = 64):
+    """Generate embeddings using concept.get_embs module."""
     print(f"\n{'='*60}")
     print(f"🚀 Generating embeddings")
     print(f"   Checkpoint: {checkpoint}")
     print(f"   Input: {adata_path}")
     print(f"   Output: {output_path}")
-    if subsample:
-        print(f"   Subsample: {subsample:,} cells")
     print(f"{'='*60}\n")
     
     os.makedirs(output_path, exist_ok=True)
     
-    # Build command with argparse arguments
     cmd = [
         "python", "-m", "concept.get_embs",
         "--checkpoint", checkpoint,
@@ -339,12 +244,6 @@ def generate_embeddings(
         "--output_emb_path", output_path,
         "--batch_size", str(batch_size),
     ]
-    
-    if subsample:
-        cmd.extend(["--subsample", str(subsample)])
-    
-    # Add Hydra overrides (these go at the end, without --)
-    cmd.extend(hydra_overrides)
     
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=False)
@@ -369,12 +268,7 @@ def add_concept_embeddings(adata, embedding_path: str, name: str = "Dataset"):
     df_mean = pd.DataFrame(emb_mean, index=cell_ids)
     df_cls = pd.DataFrame(emb_cls, index=cell_ids)
     
-    # Filter adata to keep only cells with embeddings
-    common_cells = adata.obs_names.intersection(cell_ids)
-    print(f"   {name}: {len(common_cells):,}/{adata.n_obs:,} cells have embeddings")
-    adata = adata[common_cells].copy()
-    
-    # Align embeddings
+    # Align with adata.obs_names
     adata.obsm["concept_mean_embedding"] = df_mean.loc[adata.obs_names].to_numpy()
     adata.obsm["concept_cls_embedding"] = df_cls.loc[adata.obs_names].to_numpy()
     
@@ -383,6 +277,7 @@ def add_concept_embeddings(adata, embedding_path: str, name: str = "Dataset"):
 
 def load_dataset(dataset_name: str, embedding_path: str, subsample: Optional[int] = None):
     """Load a dataset with its embeddings and annotations."""
+    import anndata as ad
     import scanpy as sc
     
     config = CONFIG[dataset_name]
@@ -440,6 +335,7 @@ def load_dataset(dataset_name: str, embedding_path: str, subsample: Optional[int
 def load_dataset_custom(dataset_name: str, adata_path: str, embedding_path: str, 
                         subsample: Optional[int] = None, has_cell_type: bool = False):
     """Load a dataset from custom path (for filtered atlas)."""
+    import anndata as ad
     import scanpy as sc
     
     print(f"📂 Loading {dataset_name} (custom)...")
@@ -547,17 +443,12 @@ def run_pipeline(
     atlas2_panels: List[str] = None,
     atlas_train_panels: List[str] = None,
     atlas2_train_panels: List[str] = None,
-    subsample: Optional[int] = None,
-    mean: bool = False,
 ):
     """Run the full pipeline."""
     import anndata as ad
     import scanpy as sc
     
     model_name = get_model_name(checkpoint)
-    
-    # Load Hydra overrides from checkpoint directory
-    hydra_overrides = get_hydra_overrides(checkpoint)
     
     # Map dataset to its panels argument
     panels_map = {
@@ -567,26 +458,24 @@ def run_pipeline(
         "atlas2_train": atlas2_train_panels,
     }
     
-    # Handle 'all' option for each atlas type and track which need normal version
+    # Handle 'all' and 'all_all' options for each atlas type and track which need normal version
     include_normal = {}
     for ds_name in ["atlas", "atlas2", "atlas_train", "atlas2_train"]:
         panels = panels_map.get(ds_name)
         include_normal[ds_name] = False
         if panels and "all_all" in panels:
-            # Load all panels from directory
-            all_panels = [f.replace('.csv', '').lower().split('_')[0] 
-                        for f in os.listdir(PANELS_DIR) if f.endswith('.csv')]
-            panels_map[ds_name] = list(set(all_panels))  # unique panels
-            include_normal[ds_name] = True
+            # Load ALL panels from directory
+            panels_map[ds_name] = list(PANELS.keys())
+            include_normal[ds_name] = False  # all_all = only panels, no normal
         elif panels and "all" in panels:
             panels_map[ds_name] = ["zhuang", "zeng", "isd"]
             include_normal[ds_name] = True
-            
-            # Update local variables
-            atlas_panels = panels_map["atlas"]
-            atlas2_panels = panels_map["atlas2"]
-            atlas_train_panels = panels_map["atlas_train"]
-            atlas2_train_panels = panels_map["atlas2_train"]
+    
+    # Update local variables
+    atlas_panels = panels_map["atlas"]
+    atlas2_panels = panels_map["atlas2"]
+    atlas_train_panels = panels_map["atlas_train"]
+    atlas2_train_panels = panels_map["atlas2_train"]
     
     # Build panel info string
     panel_info = ""
@@ -659,9 +548,7 @@ def run_pipeline(
                         checkpoint=checkpoint,
                         adata_path=filtered_atlas_path,
                         output_path=emb_path,
-                        hydra_overrides=hydra_overrides,
                         batch_size=batch_size,
-                        subsample=subsample,
                     )
             
             # Also generate normal atlas if requested
@@ -674,9 +561,7 @@ def run_pipeline(
                         checkpoint=checkpoint,
                         adata_path=CONFIG[ds]["adata_path"],
                         output_path=emb_path,
-                        hydra_overrides=hydra_overrides,
                         batch_size=batch_size,
-                        subsample=subsample,
                     )
         
         else:
@@ -690,9 +575,7 @@ def run_pipeline(
                     checkpoint=checkpoint,
                     adata_path=CONFIG[ds]["adata_path"],
                     output_path=emb_path,
-                    hydra_overrides=hydra_overrides,
                     batch_size=batch_size,
-                    subsample=subsample,
                 )
     
     # Step 2: Load datasets
@@ -773,12 +656,7 @@ def run_pipeline(
         print("STEP 4: NEIGHBORS + UMAP")
         print("=" * 60)
         
-        if mean:
-            sc.pp.neighbors(combined, use_rep="concept_mean_embedding", n_neighbors=30)
-            mean_name = "mean"
-        else:
-            sc.pp.neighbors(combined, use_rep="concept_cls_embedding", n_neighbors=30)
-            mean_name = "cls"
+        sc.pp.neighbors(combined, use_rep="concept_cls_embedding", n_neighbors=30)
     
     # Step 5: UMAP - always save to scratch
     if compute_umap:
@@ -805,7 +683,7 @@ def run_pipeline(
             combined,
             color="dataset",
             title=f"UMAP by Dataset ({model_name})",
-            out_png=os.path.join(umap_dir, f"{datasets_str}_dataset_{mean_name}.png"),
+            out_png=os.path.join(umap_dir, f"{datasets_str}_dataset.png"),
         )
         
         # Plot by cell_type only if we have datasets with cell_type (not atlas-only)
@@ -856,42 +734,6 @@ def run_pipeline(
     print("=" * 60)
     for k, v in results.items():
         print(f"   {k}: {v:.4f}" if isinstance(v, float) else f"   {k}: {v}")
-    
-    # Save results to file
-    results_dir = os.path.join(FIGURES_PATH, model_name)
-    os.makedirs(results_dir, exist_ok=True)
-    results_file = os.path.join(results_dir, f"{datasets_str}_results_{mean_name}.txt")
-    
-    with open(results_file, 'w') as f:
-        f.write("=" * 60 + "\n")
-        f.write(f"EVALUATION RESULTS\n")
-        f.write("=" * 60 + "\n\n")
-        
-        f.write(f"Model: {model_name}\n")
-        f.write(f"Checkpoint: {checkpoint}\n")
-        f.write(f"Datasets: {', '.join(datasets)}\n")
-        if subsample:
-            f.write(f"Subsample (embeddings): {subsample:,}\n")
-        f.write("\n")
-        
-        # Write panel info if any
-        for ds_name, panels in panels_map.items():
-            if panels:
-                f.write(f"{ds_name} panels: {', '.join(panels)}\n")
-        f.write("\n")
-        
-        f.write("-" * 60 + "\n")
-        f.write("METRICS\n")
-        f.write("-" * 60 + "\n\n")
-        
-        # Write metrics
-        for k, v in results.items():
-            if k.startswith("cLISI") or k.startswith("iLISI"):
-                f.write(f"{k}: {v:.4f}\n")
-        
-        f.write("\n" + "=" * 60 + "\n")
-    
-    print(f"\n💾 Results saved to: {results_file}")
     
     return combined, results
 
@@ -957,44 +799,27 @@ def main():
     parser.add_argument(
         "--atlas-panel",
         nargs="+",
-        choices=["zhuang", "zeng", "isd", "all", "all_all"],
-        help="Filter atlas to specific gene panel(s). Use 'all' to include atlas_zhuang, atlas_zeng, atlas_isd AND atlas normal"
+        help=f"Filter atlas to gene panel(s). Use 'all' for zhuang+zeng+isd+normal, 'all_all' for all panels in {PANELS_DIR} + normal. Available: {list(PANELS.keys())}"
     )
     
     parser.add_argument(
         "--atlas2-panel",
         nargs="+",
-        choices=["zhuang", "zeng", "isd", "all"],
-        help="Filter atlas2 to specific gene panel(s). Use 'all' to include atlas2_zhuang, atlas2_zeng, atlas2_isd AND atlas2 normal"
+        help=f"Filter atlas2 to gene panel(s). Use 'all' for zhuang+zeng+isd+normal, 'all_all' for all panels + normal. Available: {list(PANELS.keys())}"
     )
     
     parser.add_argument(
         "--atlas-train-panel",
         nargs="+",
-        choices=["zhuang", "zeng", "isd", "all"],
-        help="Filter atlas_train to specific gene panel(s). Use 'all' for all panels + normal"
+        help=f"Filter atlas_train to gene panel(s). Use 'all' for zhuang+zeng+isd+normal, 'all_all' for all panels + normal. Available: {list(PANELS.keys())}"
     )
     
     parser.add_argument(
         "--atlas2-train-panel",
         nargs="+",
-        choices=["zhuang", "zeng", "isd", "all"],
-        help="Filter atlas2_train to specific gene panel(s). Use 'all' for all panels + normal"
+        help=f"Filter atlas2_train to gene panel(s). Use 'all' for zhuang+zeng+isd+normal, 'all_all' for all panels + normal. Available: {list(PANELS.keys())}"
     )
     
-    parser.add_argument(
-        "--subsample", "-s",
-        type=int,
-        default=100_000,
-        help="Number of cells to subsample for embedding generation (use 0 or -1 for no subsampling)"
-    )
-
-    parser.add_argument(
-        "--mean",
-        action="store_true",
-        help="Use mean embedding instead of CLS embedding"
-    )
-
     args = parser.parse_args()
     
     run_pipeline(
@@ -1009,8 +834,6 @@ def main():
         atlas2_panels=args.atlas2_panel,
         atlas_train_panels=args.atlas_train_panel,
         atlas2_train_panels=args.atlas2_train_panel,
-        subsample=args.subsample if args.subsample > 0 else None,
-        mean=args.mean,
     )
 
 
