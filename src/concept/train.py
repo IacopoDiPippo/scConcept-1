@@ -160,12 +160,38 @@ def train(cfg: DictConfig):
     # ------------------------
     ckpt_path = None
     if DO_RESUME:
+        if "split_mouse" in cfg.PATH.SPLIT:
+            split_dir = "split_mouse"
+        else:
+            split_dir = "split_mouse_2"
+
+        # size
+        size_tag = "big" if cfg.model.dim_model == 512 else "small"
+
+        # sampling
+        sampling_tag = (
+            "weighted"
+            if cfg.datamodule.probabilistic_panel_sampling
+            else "uniform"
+        )
+
+        run_dir = f"{size_tag}_{sampling_tag}__{RESUME_RUN_ID}"
+        
         ckpt_path = os.path.join(
             cfg.PATH.CHECKPOINT_ROOT,
-            RESUME_RUN_ID,
-            RESUME_CKPT
+            split_dir,
+            "session_2",
+            run_dir,
+            RESUME_CKPT,
         )
-        print(f"\n>>> RESUMING FROM CHECKPOINT:\n>>> {ckpt_path}\n")
+
+        print(
+            "\n>>> RESUMING FROM CHECKPOINT\n"
+            f">>> split_dir: {split_dir}\n"
+            f">>> run_dir: {run_dir}\n"
+            f">>> checkpoint: {ckpt_path}\n"
+        )
+
         assert os.path.isfile(ckpt_path), f"Checkpoint not found: {ckpt_path}"
 
     if DO_VALIDATE_BEFORE_FIT:

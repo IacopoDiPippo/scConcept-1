@@ -6,7 +6,7 @@ defaults:
 
 wandb:
   enabled: true
-  run_name: uniform_big_batch256
+  run_name: session3P_small_weighted
   entity: iacopodipippo-technical-university-of-munich
   project: scConcept
 
@@ -17,7 +17,7 @@ initialize:
 
 initialize_2:
   resume: False
-  run_id: zp2ksa3s
+  run_id: kdp2po4o
   checkpoint: epochs/last.ckpt
   do_validate_first: False
 
