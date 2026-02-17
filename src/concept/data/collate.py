@@ -31,6 +31,7 @@ class Collate(BaseCollate):
                  model_speed_sanity_check=False,
                  probabilistic_panel_sampling: bool = False,
                  probabilistic_panel_csv: str = None,
+                 finetune_panels: bool = False,
                  ):
         super().__init__(PAD_TOKEN=tokenizer.PAD_TOKEN, 
                          max_tokens=max_tokens, 
@@ -41,6 +42,7 @@ class Collate(BaseCollate):
         self.split_input = split_input
         self.panel_selection = panel_selection
         self.panel_selection_mixed_prob = panel_selection_mixed_prob
+        self.finetune_panels = finetune_panels
         if self.panel_selection != 'random':
             self.panels_dir = Path(panels_path)
             self.panel_names = [panel_name for panel_name in os.listdir(self.panels_dir) if re.search(panel_filter_regex, panel_name) and panel_name.endswith('.csv')]
@@ -233,8 +235,13 @@ class Collate(BaseCollate):
                 panel_idx_1 = np.where(np.isin(batch_permute[0]['tokens'], panel))[0]
                 panel_size_1 = len(panel_idx_1)
                 # print(f'Panel_1 {self.panel_names[i]} predefined size: {len(panel_idx_1)}')
-            
-            if panel_overlap:
+                
+            if self.finetune_panels and self.rng.uniform() <= self.panel_selection_mixed_prob:
+                panel, panel_name_2 = self._get_predesigned_panel(batch_permute)
+                panel_idx_2 = np.where(np.isin(batch_permute[0]['tokens'], panel))[0]
+                panel_size_2 = len(panel_idx_2)
+
+            elif panel_overlap: 
                 panel_size_2 = self.log_int_samping(
                     min(self.panel_size_min, n_tokens),
                     min(self.panel_size_max, n_tokens)

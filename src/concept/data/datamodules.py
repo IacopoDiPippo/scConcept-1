@@ -31,12 +31,14 @@ class AnnDataModule(L.LightningDataModule):
         force_in_memory: bool = False,
         probabilistic_panel_sampling: bool = False,
         probabilistic_panel_csv: Optional[str] = None,
+        finetune_panels: bool = False
     ):
         super().__init__()
 
         self.probabilistic_panel_sampling = probabilistic_panel_sampling
         self.probabilistic_panel_csv = probabilistic_panel_csv
         
+        self.finetune_panels = finetune_panels
         self.tokenizer = tokenizer
         self.panels_path = panels_path
         self.gene_sampling_strategy = gene_sampling_strategy
@@ -215,6 +217,7 @@ class AnnDataModule(L.LightningDataModule):
             'model_speed_sanity_check': self.model_speed_sanity_check,
             'probabilistic_panel_sampling': self.probabilistic_panel_sampling,
             'probabilistic_panel_csv': self.probabilistic_panel_csv,
+            'finetune_panels': self.finetune_panels,
             **{key: dataset_kwargs.pop(key) for key in keys_to_pop if key in dataset_kwargs}
         }
         return Collate(**collate_kwargs)

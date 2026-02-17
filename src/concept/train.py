@@ -88,6 +88,7 @@ def train(cfg: DictConfig):
         'precomp_embs_key': cfg.datamodule.precomp_embs_key,
         'normalization': cfg.datamodule.normalization,
         'gene_sampling_strategy': cfg.datamodule.gene_sampling_strategy,
+        'finetune_panels': cfg.datamodule.finetune_panels,
         'model_speed_sanity_check': cfg.datamodule.model_speed_sanity_check,
         # make sure to pass a copy to avoid being modified before uploading to wandb:
         'dataset_kwargs': {**OmegaConf.to_container(cfg.datamodule.dataset, resolve=True, throw_on_missing=True)}, 
@@ -176,7 +177,7 @@ def train(cfg: DictConfig):
         )
 
         run_dir = f"{size_tag}_{sampling_tag}__{RESUME_RUN_ID}"
-        
+
         ckpt_path = os.path.join(
             cfg.PATH.CHECKPOINT_ROOT,
             split_dir,
