@@ -32,7 +32,6 @@ class Collate(BaseCollate):
                  probabilistic_panel_sampling: bool = False,
                  probabilistic_panel_csv: str = None,
                  finetune_panels: bool = False,
-                 finetune_selection_mixed_prob: float = 0.25,
                  superselected_panel_1: str = None,
                  superselected_panel_2: str = None,
                  ):
@@ -46,10 +45,9 @@ class Collate(BaseCollate):
         self.panel_selection = panel_selection
         self.panel_selection_mixed_prob = panel_selection_mixed_prob
         self.finetune_panels = finetune_panels
-        self.finetune_selection_mixed_prob = finetune_selection_mixed_prob
 
         # Load panels for any mode that needs them
-        if self.panel_selection not in ('random',):
+        if self.panel_selection not in ('random',) or finetune_panels:
             self.panels_dir = Path(panels_path)
             self.panel_names = [panel_name for panel_name in os.listdir(self.panels_dir) if re.search(panel_filter_regex, panel_name) and panel_name.endswith('.csv')]
             print("Available panels:", self.panel_names)
@@ -274,7 +272,7 @@ class Collate(BaseCollate):
             # Panel 2 selection (only for non-superselected modes)
             # -------------------------------------------------------
             if self.panel_selection != 'superselected':
-                if self.finetune_panels and self.rng.uniform() <= self.finetune_selection_mixed_prob:
+                if self.finetune_panels and self.rng.uniform() <= self.panel_selection_mixed_prob:
                     panel, panel_name_2 = self._get_predesigned_panel(batch_permute)
                     panel_idx_2 = np.where(np.isin(batch_permute[0]['tokens'], panel))[0]
                     panel_size_2 = len(panel_idx_2)
