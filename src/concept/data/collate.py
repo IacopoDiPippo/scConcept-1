@@ -47,7 +47,8 @@ class Collate(BaseCollate):
         if panel_selection == 'random':
             finetune_panels = False
         else:
-            finetune_panels = self.finetune_panels
+            finetune_panels = finetune_panels
+        self.finetune_panels = finetune_panels
         self.panel_selection_mixed_prob = panel_selection_mixed_prob
         self.finetune_selection_mixed_prob = finetune_selection_mixed_prob
 
