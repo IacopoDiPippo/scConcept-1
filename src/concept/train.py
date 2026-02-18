@@ -163,7 +163,7 @@ def train(cfg: DictConfig):
     print(f"DEBUG cfg.split = '{cfg.split}'", flush=True)
     ckpt_path = None
     if DO_RESUME:
-        if "split_mouse" == cfg.split:
+        if "split_mouse" == cfg.initialize_2.split:
             split_dir = "split_mouse"
         else:
             split_dir = "split_mouse_2"

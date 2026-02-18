@@ -1,7 +1,7 @@
 defaults:
   - model: ContrastiveModel
   - datamodule: DataModuleBasic
-  - split: split_mouse_2
+  - split: split_mouse
   - _self_
 
 wandb:
@@ -16,6 +16,7 @@ initialize:
   checkpoint: null
 
 initialize_2:
+  split: split_mouse
   resume: False
   run_id: kdp2po4o
   checkpoint: epochs/last.ckpt
