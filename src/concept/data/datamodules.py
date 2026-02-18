@@ -105,18 +105,18 @@ class AnnDataModule(L.LightningDataModule):
         # =========================
         # VAL - MODIFIED TO SUPPORT MULTIPLE SPLITS
         # =========================
-        if 'val' in dataset_kwargs:  # 🆕 Rimosso controllo su split['val']
+        if 'val' in dataset_kwargs:
             self.val_datasets = {}
 
             for val_name, val_kwargs in dataset_kwargs['val'].items():
-                # 🆕 Prendi split_key dalla config, default 'val'
+                # Grab split_key from config, default 'val'
                 split_key = val_kwargs.pop('split_key', 'val')
                 
-                # 🆕 Verifica che lo split esista
+                # Verify the split exists
                 if split_key not in split or split[split_key] is None:
                     raise ValueError(f"Split key '{split_key}' not found in split dict for val loader '{val_name}'. Available splits: {list(split.keys())}")
                 
-                val_sources = split[split_key]  # 🆕 Usa split specifico
+                val_sources = split[split_key]
                 print(f"📊 VAL loader '{val_name}' using split '{split_key}' with {len(val_sources)} files")
                 
                 within_group_sampling = dataloader_kwargs['val'][val_name]['within_group_sampling']
@@ -207,6 +207,8 @@ class AnnDataModule(L.LightningDataModule):
             'max_tokens', 'min_tokens', 'variable_size', 'panel_selection', 'panel_selection_mixed_prob',
             'panel_filter_regex', 'panel_size_min', 'panel_size_max', 'panel_overlap',
             'panel_max_drop_rate', 'feature_max_drop_rate',
+            # superselected-specific keys
+            'superselected_panel_1', 'superselected_panel_2',
         ]
 
         collate_kwargs = {

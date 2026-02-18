@@ -32,6 +32,8 @@ class Collate(BaseCollate):
                  probabilistic_panel_sampling: bool = False,
                  probabilistic_panel_csv: str = None,
                  finetune_panels: bool = False,
+                 superselected_panel_1: str = None,
+                 superselected_panel_2: str = None,
                  ):
         super().__init__(PAD_TOKEN=tokenizer.PAD_TOKEN, 
                          max_tokens=max_tokens, 
@@ -43,7 +45,9 @@ class Collate(BaseCollate):
         self.panel_selection = panel_selection
         self.panel_selection_mixed_prob = panel_selection_mixed_prob
         self.finetune_panels = finetune_panels
-        if self.panel_selection != 'random':
+
+        # Load panels for any mode that needs them
+        if self.panel_selection not in ('random',):
             self.panels_dir = Path(panels_path)
             self.panel_names = [panel_name for panel_name in os.listdir(self.panels_dir) if re.search(panel_filter_regex, panel_name) and panel_name.endswith('.csv')]
             print("Available panels:", self.panel_names)
@@ -51,6 +55,21 @@ class Collate(BaseCollate):
                        for panel_name in self.panel_names]
             for i in range(len(self.panels)):
                 print(f'Panel {self.panel_names[i]} size: {len(self.panels[i])} genes')
+
+        # --- superselected mode: two explicitly named panels ---
+        self.superselected_panel_1 = superselected_panel_1
+        self.superselected_panel_2 = superselected_panel_2
+
+        if self.panel_selection == 'superselected':
+            assert superselected_panel_1 is not None and superselected_panel_2 is not None, \
+                "panel_selection='superselected' requires both superselected_panel_1 and superselected_panel_2 to be set"
+
+            self._superselected_idx_1 = self._resolve_superselected_panel(superselected_panel_1, panel_num=1)
+            print(f"Superselected panel 1: '{self.panel_names[self._superselected_idx_1]}' ({len(self.panels[self._superselected_idx_1])} genes)")
+
+            self._superselected_idx_2 = self._resolve_superselected_panel(superselected_panel_2, panel_num=2)
+            print(f"Superselected panel 2: '{self.panel_names[self._superselected_idx_2]}' ({len(self.panels[self._superselected_idx_2])} genes)")
+
         self.panel_size_min = panel_size_min
         self.panel_size_max = panel_size_max
         self.panel_overlap = panel_overlap
@@ -154,53 +173,54 @@ class Collate(BaseCollate):
         
         return batch, batch_1, batch_2
 
-    # def _custom_panel_selection(self, batch):
-    #     tokens = batch[0]['tokens']
-    #     count_nnz = batch[0]['count_nnz']
-    #     if self.gene_sampling_strategy == 'random-nonzero':
-    #         # perc_nnz = count_nnz / len(batch)
-    #         # expressed_features = tokens[np.argsort(count_nnz)[::-1][:500]]
-    #         available_panels = []
-    #         panel_probs = []
-    #         for i in range(len(self.panels)):
-    #             panel = self.panels[i]
-    #             available_panels.append(i)
-    #             panel_probs.append(np.median(count_nnz[np.isin(tokens, panel)]))
-    #             # panel_probs.append(np.intersect1d(self.panels[i], expressed_features).size / len(self.panels[i]))
-    #             # if np.intersect1d(self.panels[i], expressed_features).size > (len(self.panels[i]) * 0.5):
-    #             #     available_panels.append(i)    
-    #             # available_panels.append((self.panel_names[i], len(self.panels[i]), f'{panel_probs[-1]:.2f}'))
-            
-    #         panel_probs = panel_probs // panel_probs.sum()
-    #         # assert True==False, (batch[0]['dataset_name'], 'len(tokens)', len(tokens), 'panels', list(zip(self.panel_names, panel_probs)), count_nnz)
-    #         return available_panels, panel_probs
+    def _resolve_superselected_panel(self, name: str, panel_num: int) -> int:
+        """
+        Resolve a superselected panel name to its index in self.panel_names.
+
+        The name must match the panel filename (without the .csv extension) exactly.
+        If no exact match is found, raises a ValueError listing all available panels
+        so the user can correct the config immediately.
+        """
+        # Strip .csv suffix from the provided name if the user accidentally included it
+        lookup = name.removesuffix('.csv')
+
+        # Try exact match against bare names (filename without extension)
+        bare_names = [n.removesuffix('.csv') for n in self.panel_names]
+        if lookup in bare_names:
+            return bare_names.index(lookup)
+
+        # No match — build a helpful error
+        available = '\n  '.join(sorted(bare_names))
+        raise ValueError(
+            f"\n\n[superselected_panel_{panel_num}] Panel '{name}' was not found in the panels directory.\n"
+            f"Available panels (filename without .csv):\n  {available}\n\n"
+            f"Please update your config to use one of the names above exactly."
+        )
 
     def _get_predesigned_panel(self, batch):
 
         i = self.rng.integers(0, len(self.panels))
-        # available_panels, panel_probs = self._custom_panel_selection(batch)
-        # i = self.rng.choice(available_panels, p=panel_probs)
         panel = self.panels[i]
         if self.panel_max_drop_rate is not None and self.panel_max_drop_rate > 0:
             panel_max_drop_rate = self.rng.uniform(0, self.panel_max_drop_rate)
             drop_mask = self.rng.uniform(size=len(panel)) > panel_max_drop_rate
             panel = panel[drop_mask]
         return panel, self.panel_names[i]
+
+    def _get_panel_by_index(self, batch, panel_idx):
+        """Return a specific panel by its index (used for superselected mode)."""
+        panel = self.panels[panel_idx]
+        if self.panel_max_drop_rate is not None and self.panel_max_drop_rate > 0:
+            panel_max_drop_rate = self.rng.uniform(0, self.panel_max_drop_rate)
+            drop_mask = self.rng.uniform(size=len(panel)) > panel_max_drop_rate
+            panel = panel[drop_mask]
+        return panel, self.panel_names[panel_idx]
     
     def __call__(self, batch):
-        """# DEBUG: stampa solo ogni tanto
-        item = batch[0]
-        print("n_tokens:", len(item["tokens"]))
-        print("nonzero:", (item["values"] > 0).sum())
-        print("min/max values:", item["values"].min(), item["values"].max())
-        print("----")"""
-        
         n_tokens = len(batch[0]['tokens'])
         permute = self.rng.permutation(n_tokens)
         batch_permute = [{'tokens': item['tokens'][permute], 
                           'values': item['values'][permute], 
-                        #   'count_nnz': item['count_nnz'][permute],
-                        #   'dataset_name': item['dataset_name'],
                           } for item in batch]
         
         if self.split_input:
@@ -210,8 +230,22 @@ class Collate(BaseCollate):
 
             panel_name_1, panel_name_2 = 'random', 'random'
             panel_overlap = self.rng.uniform() <= float(self.panel_overlap)
-            
-            if self.panel_selection == 'random' or (self.panel_selection == 'mixed' and self.rng.uniform() <= self.panel_selection_mixed_prob) or n_tokens < 10_000:
+
+            # -------------------------------------------------------
+            # SUPERSELECTED: both panels are explicitly named
+            # -------------------------------------------------------
+            if self.panel_selection == 'superselected':
+                panel_1_tokens, panel_name_1 = self._get_panel_by_index(batch_permute, self._superselected_idx_1)
+                panel_idx_1 = np.where(np.isin(batch_permute[0]['tokens'], panel_1_tokens))[0]
+
+                panel_2_tokens, panel_name_2 = self._get_panel_by_index(batch_permute, self._superselected_idx_2)
+                panel_idx_2 = np.where(np.isin(batch_permute[0]['tokens'], panel_2_tokens))[0]
+                # Note: superselected panels CAN overlap (they are fixed biology panels)
+
+            # -------------------------------------------------------
+            # RANDOM / MIXED / PRESELECTED (existing logic)
+            # -------------------------------------------------------
+            elif self.panel_selection == 'random' or (self.panel_selection == 'mixed' and self.rng.uniform() <= self.panel_selection_mixed_prob) or n_tokens < 10_000:
                 n_tokens_available = n_tokens if panel_overlap else max((n_tokens - self.panel_size_min), 0)
                 panel_size_1 = self.log_int_samping(min(self.panel_size_min, n_tokens_available), min(self.panel_size_max, n_tokens_available))
                 if self.probabilistic_panel_sampling:
@@ -229,67 +263,68 @@ class Collate(BaseCollate):
                         replace=False
                     )
 
-                # print(f'Panel_1 random size: {len(panel_idx_1)}')
             else:
                 panel, panel_name_1 = self._get_predesigned_panel(batch_permute)
                 panel_idx_1 = np.where(np.isin(batch_permute[0]['tokens'], panel))[0]
                 panel_size_1 = len(panel_idx_1)
-                # print(f'Panel_1 {self.panel_names[i]} predefined size: {len(panel_idx_1)}')
-                
-            if self.finetune_panels and self.rng.uniform() <= self.panel_selection_mixed_prob:
-                panel, panel_name_2 = self._get_predesigned_panel(batch_permute)
-                panel_idx_2 = np.where(np.isin(batch_permute[0]['tokens'], panel))[0]
-                panel_size_2 = len(panel_idx_2)
 
-            elif panel_overlap: 
-                panel_size_2 = self.log_int_samping(
-                    min(self.panel_size_min, n_tokens),
-                    min(self.panel_size_max, n_tokens)
-                )
+            # -------------------------------------------------------
+            # Panel 2 selection (only for non-superselected modes)
+            # -------------------------------------------------------
+            if self.panel_selection != 'superselected':
+                if self.finetune_panels and self.rng.uniform() <= self.panel_selection_mixed_prob:
+                    panel, panel_name_2 = self._get_predesigned_panel(batch_permute)
+                    panel_idx_2 = np.where(np.isin(batch_permute[0]['tokens'], panel))[0]
+                    panel_size_2 = len(panel_idx_2)
 
-                if self.probabilistic_panel_sampling:
-                    panel_tokens_2 = self._sample_probabilistic_panel(
+                elif panel_overlap: 
+                    panel_size_2 = self.log_int_samping(
+                        min(self.panel_size_min, n_tokens),
+                        min(self.panel_size_max, n_tokens)
+                    )
+
+                    if self.probabilistic_panel_sampling:
+                        panel_tokens_2 = self._sample_probabilistic_panel(
+                            batch_permute[0]["tokens"],
+                            panel_size_2
+                        )
+                        panel_idx_2 = np.where(
+                            np.isin(batch_permute[0]["tokens"], panel_tokens_2)
+                        )[0]
+                    else:
+                        panel_idx_2 = self.rng.choice(
+                            panel_indices,
+                            panel_size_2,
+                            replace=False
+                        )
+
+                else:
+                    panel_size_2 = self.log_int_samping(
+                        min(self.panel_size_min, n_tokens - panel_size_1),
+                        min(self.panel_size_max, n_tokens - panel_size_1)
+                    )
+
+                    available_tokens = batch_permute[0]["tokens"][~np.isin(
                         batch_permute[0]["tokens"],
-                        panel_size_2
-                    )
-                    panel_idx_2 = np.where(
-                        np.isin(batch_permute[0]["tokens"], panel_tokens_2)
-                    )[0]
-                else:
-                    panel_idx_2 = self.rng.choice(
-                        panel_indices,
-                        panel_size_2,
-                        replace=False
-                    )
+                        batch_permute[0]["tokens"][panel_idx_1]
+                    )]
 
-                # print(f'Panel_2 random size: {len(panel_idx_2)}, shared: {np.intersect1d(panel_idx_1, panel_idx_2).size}')
-            else:
-                panel_size_2 = self.log_int_samping(
-                    min(self.panel_size_min, n_tokens - panel_size_1),
-                    min(self.panel_size_max, n_tokens - panel_size_1)
-                )
+                    if self.probabilistic_panel_sampling:
+                        panel_tokens_2 = self._sample_probabilistic_panel(
+                            available_tokens,
+                            panel_size_2
+                        )
+                        panel_idx_2 = np.where(
+                            np.isin(batch_permute[0]["tokens"], panel_tokens_2)
+                        )[0]
+                    else:
+                        panel_idx_2 = self.rng.choice(
+                            np.setdiff1d(panel_indices, panel_idx_1, assume_unique=True),
+                            panel_size_2,
+                            replace=False
+                        )
 
-                available_tokens = batch_permute[0]["tokens"][~np.isin(
-                    batch_permute[0]["tokens"],
-                    batch_permute[0]["tokens"][panel_idx_1]
-                )]
-
-                if self.probabilistic_panel_sampling:
-                    panel_tokens_2 = self._sample_probabilistic_panel(
-                        available_tokens,
-                        panel_size_2
-                    )
-                    panel_idx_2 = np.where(
-                        np.isin(batch_permute[0]["tokens"], panel_tokens_2)
-                    )[0]
-                else:
-                    panel_idx_2 = self.rng.choice(
-                        np.setdiff1d(panel_indices, panel_idx_1, assume_unique=True),
-                        panel_size_2,
-                        replace=False
-                    )
-
-                assert np.intersect1d(panel_idx_1, panel_idx_2).size == 0, 'Panels overlap'
+                    assert np.intersect1d(panel_idx_1, panel_idx_2).size == 0, 'Panels overlap'
             
                         
             batch_1 = [{'tokens': item['tokens'][panel_idx_1], 'values': item['values'][panel_idx_1]} for item in batch_permute]
@@ -304,17 +339,12 @@ class Collate(BaseCollate):
 
             max_lenght_1 = max([len(item['tokens']) for item in batch_1])
             max_lenght_1 = min(max_lenght_1, self.max_tokens - 1) # todo
-            # min_lenght_1 = min([len(item['tokens']) for item in batch_1])
-            # max_lenght_1 = min(self.int_samping(min_lenght_1, max_lenght_1), self.max_tokens)
             max_lenght_2 = max([len(item['tokens']) for item in batch_2])
             max_lenght_2 = min(max_lenght_2, self.max_tokens - 1) # todo
             
             
             batch_1 = [self.resize_and_pad(item, max_lenght_1) for item in batch_1]
             batch_2 = [self.resize_and_pad(item, max_lenght_2) for item in batch_2]
-            
-            # batch, batch_1, batch_2 = self.adapt_batch_size(batch, batch_1, batch_2)
-            # self.shared_feature_stats(batch_1)
             
             tokens_1 = [item['tokens'].astype(np.int64) for item in batch_1]
             values_1 = [item['values'].astype(np.float32) for item in batch_1]
@@ -347,5 +377,3 @@ class Collate(BaseCollate):
                     'values': default_collate(values),
                     **{key: default_collate([item[key] for item in batch]) for key in batch[0].keys() if key not in ['tokens', 'values']}
             }
-
-
