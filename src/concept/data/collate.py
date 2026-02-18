@@ -61,7 +61,7 @@ class Collate(BaseCollate):
                        for panel_name in self.panel_names]
             for i in range(len(self.panels)):
                 print(f'Panel {self.panel_names[i]} size: {len(self.panels[i])} genes')
-
+            assert len(self.panels) > 0, f"No panels found in {self.panels_dir} matching regex '{panel_filter_regex}'"
         # --- superselected mode: two explicitly named panels ---
         self.superselected_panel_1 = superselected_panel_1
         self.superselected_panel_2 = superselected_panel_2
