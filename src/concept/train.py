@@ -89,6 +89,7 @@ def train(cfg: DictConfig):
         'normalization': cfg.datamodule.normalization,
         'gene_sampling_strategy': cfg.datamodule.gene_sampling_strategy,
         'finetune_panels': cfg.datamodule.finetune_panels,
+        'finetune_selection_mixed_prob': cfg.datamodule.finetune_selection_mixed_prob,
         'model_speed_sanity_check': cfg.datamodule.model_speed_sanity_check,
         # make sure to pass a copy to avoid being modified before uploading to wandb:
         'dataset_kwargs': {**OmegaConf.to_container(cfg.datamodule.dataset, resolve=True, throw_on_missing=True)}, 
@@ -161,7 +162,7 @@ def train(cfg: DictConfig):
     # ------------------------
     ckpt_path = None
     if DO_RESUME:
-        if "split_mouse" in cfg.split:
+        if "split_mouse" == cfg.split:
             split_dir = "split_mouse"
         else:
             split_dir = "split_mouse_2"

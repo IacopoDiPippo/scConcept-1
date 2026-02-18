@@ -31,14 +31,17 @@ class AnnDataModule(L.LightningDataModule):
         force_in_memory: bool = False,
         probabilistic_panel_sampling: bool = False,
         probabilistic_panel_csv: Optional[str] = None,
-        finetune_panels: bool = False
+        finetune_panels: bool = False,
+        finetune_selection_mixed_prob: float = 0.25
     ):
         super().__init__()
 
         self.probabilistic_panel_sampling = probabilistic_panel_sampling
         self.probabilistic_panel_csv = probabilistic_panel_csv
         
+        self.finetune_selection_mixed_prob = finetune_selection_mixed_prob
         self.finetune_panels = finetune_panels
+
         self.tokenizer = tokenizer
         self.panels_path = panels_path
         self.gene_sampling_strategy = gene_sampling_strategy
@@ -220,6 +223,7 @@ class AnnDataModule(L.LightningDataModule):
             'probabilistic_panel_sampling': self.probabilistic_panel_sampling,
             'probabilistic_panel_csv': self.probabilistic_panel_csv,
             'finetune_panels': self.finetune_panels,
+            'finetune_selection_mixed_prob': self.finetune_selection_mixed_prob,
             **{key: dataset_kwargs.pop(key) for key in keys_to_pop if key in dataset_kwargs}
         }
         return Collate(**collate_kwargs)
