@@ -160,6 +160,7 @@ def train(cfg: DictConfig):
     # ------------------------
     # REAL LIGHTNING RESUME
     # ------------------------
+    print(f"DEBUG cfg.split = '{cfg.split}'", flush=True)
     ckpt_path = None
     if DO_RESUME:
         if "split_mouse" == cfg.split:
