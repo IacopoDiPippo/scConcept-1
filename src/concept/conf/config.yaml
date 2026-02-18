@@ -1,7 +1,7 @@
 defaults:
   - model: ContrastiveModel
   - datamodule: DataModuleBasic
-  - split: split_mouse
+  - split: split_mouse_2
   - _self_
 
 wandb:
