@@ -1,6 +1,6 @@
 train: null
 train_ISD:
-  - ISD-1_train.h5ad
+  - ISD-1_val.h5ad
 train_Zeng:
   - Zeng_train.h5ad
 train_Zhuang:
