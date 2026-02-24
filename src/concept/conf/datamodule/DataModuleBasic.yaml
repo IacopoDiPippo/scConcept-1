@@ -61,14 +61,14 @@ dataset:
   val:
     same:
       split_key: val_transcriptomics
-      max_tokens: ${datamodule.dataset.train.max_tokens}
-      variable_size: ${datamodule.dataset.train.variable_size}
-      panel_overlap: ${datamodule.dataset.train.panel_overlap}
-      panel_selection: ${datamodule.dataset.train.panel_selection}
-      panel_selection_mixed_prob: ${datamodule.dataset.train.panel_selection_mixed_prob}
-      panel_filter_regex: ${datamodule.dataset.train.panel_filter_regex}
-      panel_size_min: ${datamodule.dataset.train.panel_size_min}
-      panel_size_max: ${datamodule.dataset.train.panel_size_max}
+      max_tokens: ${datamodule.dataset.train.transcriptomics.max_tokens}
+      variable_size: ${datamodule.dataset.train.transcriptomics.variable_size}
+      panel_overlap: ${datamodule.dataset.train.transcriptomics.panel_overlap}
+      panel_selection: ${datamodule.dataset.train.transcriptomics.panel_selection}
+      panel_selection_mixed_prob: ${datamodule.dataset.train.transcriptomics.panel_selection_mixed_prob}
+      panel_filter_regex: ${datamodule.dataset.train.transcriptomics.panel_filter_regex}
+      panel_size_min: ${datamodule.dataset.train.transcriptomics.panel_size_min}
+      panel_size_max: ${datamodule.dataset.train.transcriptomics.panel_size_max}
     within_P400_B256:
       split_key: val_transcriptomics
       max_tokens: 400
@@ -166,46 +166,48 @@ dataset:
 
   
 dataloader:
-  transcriptomics:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 8
-      pin_memory: True
-      drop_last: True
-      num_samples: null
-  spatial_ISD:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 4
-      pin_memory: True
-      drop_last: True
-      num_samples: null
-  spatial_Zeng:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 4
-      pin_memory: True
-      drop_last: True
-      num_samples: null
-  spatial_Zhuang:
-      within_group_sampling: "dataset"
-      batch_size: 256
-      shuffle: True
-      num_workers: 4
-      pin_memory: True
-      drop_last: True
-      num_samples: null
+  train:
+    transcriptomics:
+        within_group_sampling: "dataset"
+        batch_size: 256
+        shuffle: True
+        num_workers: 8
+        pin_memory: True
+        drop_last: True
+        num_samples: null
+    spatial_ISD:
+        within_group_sampling: "dataset"
+        batch_size: 256
+        shuffle: True
+        num_workers: 4
+        pin_memory: True
+        drop_last: True
+        num_samples: null
+    spatial_Zeng:
+        within_group_sampling: "dataset"
+        batch_size: 256
+        shuffle: True
+        num_workers: 4
+        pin_memory: True
+        drop_last: True
+        num_samples: null
+    spatial_Zhuang:
+        within_group_sampling: "dataset"
+        batch_size: 256
+        shuffle: True
+        num_workers: 4
+        pin_memory: True
+        drop_last: True
+        num_samples: null
+
   val:
     same:
-      within_group_sampling: ${datamodule.dataloader.train.within_group_sampling}
-      batch_size: ${datamodule.dataloader.train.batch_size}
-      shuffle: ${datamodule.dataloader.train.shuffle}
+      within_group_sampling: ${datamodule.dataloader.train.transcriptomics.within_group_sampling}
+      batch_size: ${datamodule.dataloader.train.transcriptomics.batch_size}
+      shuffle: ${datamodule.dataloader.train.transcriptomics.shuffle}
       num_workers: 2
       pin_memory: False
-      drop_last: ${datamodule.dataloader.train.drop_last}
+      drop_last: ${datamodule.dataloader.train.transcriptomics.drop_last}
       num_samples: 100000
     within_P400_B256:
       within_group_sampling: "dataset"
