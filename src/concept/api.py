@@ -213,10 +213,10 @@ class scConcept:
     @staticmethod
     def validate_config(cfg: DictConfig):
         """Validate configuration constraints."""
-        if cfg.model.pe_max_len < cfg.datamodule.dataset.train.max_tokens:
+        if cfg.model.pe_max_len < cfg.datamodule.dataset.train.transcriptomics.max_tokens:
             raise ValueError(
                 f"Configuration validation failed: model.pe_max_len ({cfg.model.pe_max_len}) must be greater than "
-                f"datamodule.dataset.train.max_tokens ({cfg.datamodule.dataset.train.max_tokens})"
+                f"datamodule.dataset.train.transcriptomics.max_tokens ({cfg.datamodule.dataset.train.transcriptomics.max_tokens})"
             )
 
     @staticmethod
@@ -273,7 +273,7 @@ class scConcept:
         self.model.eval()
         
         # Determine parameters with defaults from config
-        max_tokens = max_tokens if max_tokens is not None else self.cfg.datamodule.dataset.train.max_tokens
+        max_tokens = max_tokens if max_tokens is not None else self.cfg.datamodule.dataset.train.transcriptomics.max_tokens
         gene_sampling_strategy = gene_sampling_strategy if gene_sampling_strategy is not None else self.cfg.datamodule.gene_sampling_strategy
 
         print(f"Extracting embeddings from AnnData with shape {adata.shape}")
