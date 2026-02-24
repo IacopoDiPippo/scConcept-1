@@ -1,5 +1,5 @@
 name: DataModule
-columns: [] # include all obs keys to retrieve from dataloader
+columns: ["subclass", "donor_label"] # include all obs keys to retrieve from dataloader
 label_keys_to_monitor: ["subclass"]
 batch_keys_to_monitor: ["donor_label"]
 normalization: raw
