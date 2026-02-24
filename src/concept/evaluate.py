@@ -430,6 +430,7 @@ def run_pipeline(
     atlas2_train_panels: List[str] = None,
     subsample: Optional[int] = None,
     mean: bool = False,
+    separation: bool = False,
 ):
     """Run the full pipeline."""
     import anndata as ad
@@ -666,6 +667,41 @@ def run_pipeline(
                 title=f"UMAP by Cell Type ({model_name})",
                 out_png=os.path.join(umap_dir, f"{datasets_str}_celltype_{mean_name}.png"),
             )
+        
+        # Separation: create separate UMAP for each cell type
+        if separation and has_cell_type and "cell_type_mmc_raw" in combined.obs.columns:
+            print("\n" + "=" * 60)
+            print("STEP 4b: SEPARATION UMAPs (per cell type)")
+            print("=" * 60)
+            
+            separation_dir = os.path.join(umap_dir, f"{datasets_str}_separation_{mean_name}")
+            os.makedirs(separation_dir, exist_ok=True)
+            
+            cell_types = combined.obs["cell_type_mmc_raw"].dropna().unique()
+            print(f"📊 Creating {len(cell_types)} separate UMAPs for each cell type...")
+            
+            for ct in sorted(cell_types):
+                # Filter to this cell type
+                mask = combined.obs["cell_type_mmc_raw"] == ct
+                n_cells = mask.sum()
+                
+                if n_cells < 10:
+                    print(f"   ⚠️ Skipping {ct}: only {n_cells} cells")
+                    continue
+                
+                ct_adata = combined[mask].copy()
+                
+                # Plot colored by dataset
+                ct_safe = ct.replace("/", "-").replace(" ", "_")
+                plot_umap(
+                    ct_adata,
+                    color="dataset",
+                    title=f"{ct} ({n_cells:,} cells)",
+                    out_png=os.path.join(separation_dir, f"{ct_safe}_dataset.png"),
+                )
+                print(f"   ✅ {ct}: {n_cells:,} cells")
+            
+            print(f"\n💾 Separation UMAPs saved to: {separation_dir}")
     
     # Step 6: Compute metrics
     results = {"model": model_name, "datasets": "_".join(datasets)}
@@ -766,6 +802,8 @@ def main():
     parser.add_argument("--subsample", "-s", type=int, default=None,
                         help="Number of cells to subsample for embedding generation")
     parser.add_argument("--mean", action="store_true", help="Use mean embedding instead of CLS")
+    parser.add_argument("--separation", action="store_true", 
+                        help="Create separate UMAPs for each cell type, colored by dataset")
     
     args = parser.parse_args()
     
@@ -783,6 +821,7 @@ def main():
         atlas2_train_panels=args.atlas2_train_panel,
         subsample=args.subsample,
         mean=args.mean,
+        separation=args.separation,
     )
 
 
