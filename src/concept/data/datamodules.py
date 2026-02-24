@@ -1,19 +1,3 @@
-import os
-from typing import Dict, List, Optional
-import anndata as ad
-
-import lightning as L
-import torch
-import torch.distributed as dist
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
-from lamin_dataloader import TokenizedDataset, Tokenizer
-from .collate import Collate
-from .samplers import WithinGroupSampler
-from lamin_dataloader import InMemoryCollection
-from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
-import multiprocessing
-from anndata import AnnData
-
 class AnnDataModule(L.LightningDataModule):
     def __init__(
         self,
@@ -27,6 +11,7 @@ class AnnDataModule(L.LightningDataModule):
         model_speed_sanity_check: bool = False,
         dataset_kwargs: Dict = {},
         dataloader_kwargs: Dict = {},
+        train_loader_names = [],
         val_loader_names = [],
         force_in_memory: bool = False,
         probabilistic_panel_sampling: bool = False,
@@ -46,6 +31,7 @@ class AnnDataModule(L.LightningDataModule):
         self.panels_path = panels_path
         self.gene_sampling_strategy = gene_sampling_strategy
         self.model_speed_sanity_check = model_speed_sanity_check
+        self.train_loader_names = train_loader_names
         self.val_loader_names = val_loader_names
         self.dataloader_kwargs = dataloader_kwargs
         self.force_in_memory = force_in_memory
@@ -58,66 +44,74 @@ class AnnDataModule(L.LightningDataModule):
         }
 
         # =========================
-        # TRAIN
+        # TRAIN - NOW SUPPORTS MULTIPLE LOADERS
         # =========================
-        if 'train' in split and split['train'] is not None and 'train' in dataset_kwargs:
-            within_group_sampling = dataloader_kwargs['train']['within_group_sampling']
-            keys_to_cache = [within_group_sampling] if within_group_sampling else []
+        if 'train' in dataset_kwargs:
+            self.train_datasets = {}
+            
+            for train_name, train_kwargs in dataset_kwargs['train'].items():
+                # Grab split_key from config
+                split_key = train_kwargs.pop('split_key', 'train')
+                
+                if split_key not in split or split[split_key] is None:
+                    print(f"⚠️ Split key '{split_key}' not found for train loader '{train_name}'. Skipping.")
+                    continue
+                
+                train_sources = split[split_key]
+                print(f"🚂 TRAIN loader '{train_name}' using split '{split_key}' with {len(train_sources)} files")
+                
+                within_group_sampling = dataloader_kwargs['train'][train_name]['within_group_sampling']
+                keys_to_cache = [within_group_sampling] if within_group_sampling else []
 
-            self.train_collate_fn = self._get_collate_fn(
-                dataset_kwargs['train'], split_input=True
-            )
+                train_collate_fn = self._get_collate_fn(train_kwargs, split_input=True)
 
-            train_sources = split['train']
+                if self.force_in_memory:
+                    assert within_group_sampling == 'dataset', \
+                        'within_group_sampling must be "dataset" when using InMemoryCollection'
 
-            if self.force_in_memory:
-                assert within_group_sampling == 'dataset', \
-                    'within_group_sampling must be "dataset" when using InMemoryCollection'
+                    print(f"🔵 TRAIN ({train_name}): using InMemoryCollection")
+                    train_adatas = [ad.read_h5ad(p) for p in train_sources]
 
-                print("🔵 TRAIN: using InMemoryCollection")
-                train_adatas = [ad.read_h5ad(p) for p in train_sources]
+                    collection = InMemoryCollection(
+                        adata_list=train_adatas,
+                        obs_keys=columns,
+                        layers_keys=['X'],
+                        obsm_keys=precomp_embs_key,
+                        keys_to_cache=['dataset']
+                    )
+                else:
+                    print(f"🟡 TRAIN ({train_name}): using LaminDiskCollection")
+                    from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
 
-                collection = InMemoryCollection(
-                    adata_list=train_adatas,
-                    obs_keys=columns,
-                    layers_keys=['X'],
-                    obsm_keys=precomp_embs_key,
-                    keys_to_cache=['dataset']
+                    join = None if within_group_sampling else "outer"
+
+                    collection = LaminDiskCollection(
+                        train_sources,
+                        layers_keys="X",
+                        obs_keys=columns,
+                        keys_to_cache=keys_to_cache,
+                        join=join,
+                        encode_labels=True,
+                        parallel=True,
+                        obsm_keys=precomp_embs_key
+                    )
+
+                dataset = TokenizedDataset(
+                    **{'collection': collection, **dataset_kwargs_shared, **train_kwargs}
                 )
-            else:
-                print("🟡 TRAIN: using LaminDiskCollection")
-                from lamin_dataloader.lamin_disk_collection import LaminDiskCollection
-
-                join = None if within_group_sampling else "outer"
-
-                collection = LaminDiskCollection(
-                    train_sources,
-                    layers_keys="X",
-                    obs_keys=columns,
-                    keys_to_cache=keys_to_cache,
-                    join=join,
-                    encode_labels=True,
-                    parallel=True,
-                    obsm_keys=precomp_embs_key
-                )
-
-            self.train_dataset = TokenizedDataset(
-                **{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['train']}
-            )
+                self.train_datasets[train_name] = (dataset, train_collate_fn)
 
         # =========================
-        # VAL - MODIFIED TO SUPPORT MULTIPLE SPLITS
+        # VAL - UNCHANGED
         # =========================
         if 'val' in dataset_kwargs:
             self.val_datasets = {}
 
             for val_name, val_kwargs in dataset_kwargs['val'].items():
-                # Grab split_key from config, default 'val'
                 split_key = val_kwargs.pop('split_key', 'val')
                 
-                # Verify the split exists
                 if split_key not in split or split[split_key] is None:
-                    raise ValueError(f"Split key '{split_key}' not found in split dict for val loader '{val_name}'. Available splits: {list(split.keys())}")
+                    raise ValueError(f"Split key '{split_key}' not found in split dict for val loader '{val_name}'.")
                 
                 val_sources = split[split_key]
                 print(f"📊 VAL loader '{val_name}' using split '{split_key}' with {len(val_sources)} files")
@@ -164,7 +158,7 @@ class AnnDataModule(L.LightningDataModule):
                 self.val_datasets[val_name] = (dataset, val_collate_fn)
 
         # =========================
-        # TEST
+        # TEST - UNCHANGED
         # =========================
         if 'test' in split and split['test'] is not None and 'test' in dataset_kwargs:
             self.test_collate_fn = self._get_collate_fn(
@@ -202,15 +196,14 @@ class AnnDataModule(L.LightningDataModule):
                 **{'collection': collection, **dataset_kwargs_shared, **dataset_kwargs['test']}
             )
 
+        self._train_dataloader = None
         self._val_dataloader = None
 
-    
     def _get_collate_fn(self, dataset_kwargs, split_input):
         keys_to_pop = [
             'max_tokens', 'min_tokens', 'variable_size', 'panel_selection', 'panel_selection_mixed_prob',
             'panel_filter_regex', 'panel_size_min', 'panel_size_max', 'panel_overlap',
             'panel_max_drop_rate', 'feature_max_drop_rate',
-            # superselected-specific keys
             'superselected_panel_1', 'superselected_panel_2',
         ]
 
@@ -252,7 +245,6 @@ class AnnDataModule(L.LightningDataModule):
         if torch.distributed.is_initialized():
             sampler = DistributedSamplerWrapper(sampler, shuffle=False, drop_last=False)
 
-        # torch_worker_init_fn may not exist for InMemoryCollection
         worker_init_fn = getattr(dataset.collection, 'torch_worker_init_fn', None)
         
         dataloader = DataLoader(dataset, 
@@ -268,9 +260,21 @@ class AnnDataModule(L.LightningDataModule):
         return dataloader
         
     def train_dataloader(self):
-        dataloader_kwargs = self.dataloader_kwargs['train']
-        dataloader = self._get_dataloader(self.train_dataset, dataloader_kwargs, self.train_collate_fn, 'train')
-        return dataloader
+        if self._train_dataloader is not None:
+            return self._train_dataloader
+        
+        self._train_dataloader = []
+        for train_name in self.train_loader_names:
+            train_dataset, train_collate_fn = self.train_datasets[train_name]
+            dataloader_kwargs = self.dataloader_kwargs['train'][train_name].copy()
+            dataloader = self._get_dataloader(train_dataset, dataloader_kwargs, train_collate_fn, f'train_{train_name}')
+            self._train_dataloader.append(dataloader)
+        
+        # If only one loader, return it directly (not a list)
+        if len(self._train_dataloader) == 1:
+            self._train_dataloader = self._train_dataloader[0]
+        
+        return self._train_dataloader
 
     def val_dataloader(self):
         if self._val_dataloader is not None:
@@ -279,8 +283,8 @@ class AnnDataModule(L.LightningDataModule):
         self._val_dataloader = []
         for val_name in self.val_loader_names:
             val_dataset, val_collate_fn = self.val_datasets[val_name]
-            dataloader_kwargs = self.dataloader_kwargs['val'][val_name]
-            dataloader = self._get_dataloader(val_dataset, dataloader_kwargs, val_collate_fn, 'val')
+            dataloader_kwargs = self.dataloader_kwargs['val'][val_name].copy()
+            dataloader = self._get_dataloader(val_dataset, dataloader_kwargs, val_collate_fn, f'val_{val_name}')
             self._val_dataloader.append(dataloader)
         return self._val_dataloader
         
@@ -289,7 +293,6 @@ class AnnDataModule(L.LightningDataModule):
         
         assert dataloader_kwargs['shuffle'] == False, 'shuffle should be false for test dataloader'
         assert dataloader_kwargs['drop_last'] == False, 'drop_last should be false for test dataloader'
-        # torch_worker_init_fn may not exist for InMemoryCollection
         worker_init_fn = getattr(self.test_dataset.collection, 'torch_worker_init_fn', None)
         dataloader = DataLoader(self.test_dataset, 
                                 worker_init_fn=worker_init_fn, 

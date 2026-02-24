@@ -12,16 +12,52 @@ probabilistic_panel_sampling: False
 probabilistic_panel_csv: /p/scratch/cjinm16/dipippo1/projects/scConcept-1/Panels/outputs/score_panels/combined_panel_sorted_max.csv
 dataset:
   train:
-    max_tokens: 1000
-    variable_size: False
-    panel_overlap: False
-    panel_selection: mixed
-    panel_selection_mixed_prob: 0.25
-    panel_filter_regex: ".*"
-    panel_size_min: 500
-    panel_size_max: 5000
-    panel_max_drop_rate: 0.5
-    feature_max_drop_rate: null
+    transcriptomics:
+      split_key: train_transcriptomics
+      max_tokens: 1000
+      variable_size: False
+      panel_overlap: False
+      panel_selection: mixed
+      panel_selection_mixed_prob: 0.25
+      panel_filter_regex: ".*"
+      panel_size_min: 500
+      panel_size_max: 5000
+      panel_max_drop_rate: 0.5
+      feature_max_drop_rate: null
+    spatial_ISD:
+      split_key: train_ISD
+      max_tokens: 500
+      variable_size: False
+      panel_overlap: False
+      panel_selection: mixed
+      panel_selection_mixed_prob: 1
+      panel_filter_regex: ".*"
+      panel_size_min: 250
+      panel_size_max: 325
+      panel_max_drop_rate: 0.1
+    spatial_Zeng:
+      split_key: train_Zeng
+      max_tokens: 500
+      variable_size: False
+      panel_overlap: False
+      panel_selection: mixed
+      panel_selection_mixed_prob: 1
+      panel_filter_regex: ".*"
+      panel_size_min: 250
+      panel_size_max: 325
+      panel_max_drop_rate: 0.1
+    spatial_Zhuang:
+      split_key: train_Zhuang
+      max_tokens: 1120
+      variable_size: False
+      panel_overlap: False
+      panel_selection: mixed
+      panel_selection_mixed_prob: 1
+      panel_filter_regex: ".*"
+      panel_size_min: 450
+      panel_size_max: 600
+      panel_max_drop_rate: 0.1
+
   val:
     same:
       split_key: val_transcriptomics
@@ -130,14 +166,38 @@ dataset:
 
   
 dataloader:
-  train:
-    within_group_sampling: "dataset"
-    batch_size: 256
-    shuffle: True
-    num_workers: 8
-    pin_memory: True
-    drop_last: True
-    num_samples: null
+  transcriptomics:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 8
+      pin_memory: True
+      drop_last: True
+      num_samples: null
+  spatial_ISD:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 4
+      pin_memory: True
+      drop_last: True
+      num_samples: null
+  spatial_Zeng:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 4
+      pin_memory: True
+      drop_last: True
+      num_samples: null
+  spatial_Zhuang:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 4
+      pin_memory: True
+      drop_last: True
+      num_samples: null
   val:
     same:
       within_group_sampling: ${datamodule.dataloader.train.within_group_sampling}

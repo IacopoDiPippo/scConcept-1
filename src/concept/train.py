@@ -53,7 +53,12 @@ def train(cfg: DictConfig):
 
     # Validate configuration constraints
     scConcept.validate_config(cfg)
-    
+
+    if 'train' in cfg.datamodule.dataset and cfg.datamodule.dataset.train is not None:
+        train_loader_names = sorted(list(cfg.datamodule.dataset.train.keys()))
+    else:
+        train_loader_names = []
+
     if 'val' in cfg.datamodule.dataset and cfg.datamodule.dataset.val is not None:
         val_loader_names = sorted(list(cfg.datamodule.dataset.val.keys()))
     else:
@@ -94,6 +99,7 @@ def train(cfg: DictConfig):
         # make sure to pass a copy to avoid being modified before uploading to wandb:
         'dataset_kwargs': {**OmegaConf.to_container(cfg.datamodule.dataset, resolve=True, throw_on_missing=True)}, 
         'dataloader_kwargs': {**OmegaConf.to_container(cfg.datamodule.dataloader, resolve=True, throw_on_missing=True)},
+        'train_loader_names': train_loader_names,
         'val_loader_names': val_loader_names,
         'tokenizer': GeneIdTokenizer(gene_mapping)
     }
