@@ -283,7 +283,7 @@ class AnnDataModule(L.LightningDataModule):
         for train_name in self.train_loader_names:
             train_dataset, train_collate_fn = self.train_datasets[train_name]
             dataloader_kwargs = self.dataloader_kwargs['train'][train_name].copy()
-            dataloader = self._get_dataloader(train_dataset, dataloader_kwargs, train_collate_fn, f'train_{train_name}')
+            dataloader = self._get_dataloader(train_dataset, dataloader_kwargs, train_collate_fn, f'train')
             self._train_dataloader.append(dataloader)
         
         # If only one loader, return it directly (not a list)
@@ -300,7 +300,7 @@ class AnnDataModule(L.LightningDataModule):
         for val_name in self.val_loader_names:
             val_dataset, val_collate_fn = self.val_datasets[val_name]
             dataloader_kwargs = self.dataloader_kwargs['val'][val_name].copy()
-            dataloader = self._get_dataloader(val_dataset, dataloader_kwargs, val_collate_fn, f'val_{val_name}')
+            dataloader = self._get_dataloader(val_dataset, dataloader_kwargs, val_collate_fn, f'val')
             self._val_dataloader.append(dataloader)
         return self._val_dataloader
         
