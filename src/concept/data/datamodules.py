@@ -279,16 +279,19 @@ class AnnDataModule(L.LightningDataModule):
         if self._train_dataloader is not None:
             return self._train_dataloader
         
-        self._train_dataloader = []
-        for train_name in self.train_loader_names:
+        dataloaders = []
+        for train_name in self.train_datasets.keys():
             train_dataset, train_collate_fn = self.train_datasets[train_name]
             dataloader_kwargs = self.dataloader_kwargs['train'][train_name].copy()
-            dataloader = self._get_dataloader(train_dataset, dataloader_kwargs, train_collate_fn, f'train')
-            self._train_dataloader.append(dataloader)
+            dataloader = self._get_dataloader(train_dataset, dataloader_kwargs, train_collate_fn, 'train')
+            dataloaders.append(dataloader)
         
-        # If only one loader, return it directly (not a list)
-        if len(self._train_dataloader) == 1:
-            self._train_dataloader = self._train_dataloader[0]
+        if len(dataloaders) == 1:
+            self._train_dataloader = dataloaders[0]
+        else:
+            # Combina i dataloaders - alterna tra di loro
+            from lightning.pytorch.utilities.combined_loader import CombinedLoader
+            self._train_dataloader = CombinedLoader(dataloaders, mode="max_size_cycle")
         
         return self._train_dataloader
 
