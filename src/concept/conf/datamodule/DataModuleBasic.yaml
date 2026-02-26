@@ -145,7 +145,7 @@ dataset:
       panel_size_max: 1500
       panel_overlap: True
 
-    spatial_custom:  
+    spatial_custom_zeng:  
         split_key: val_spatial_zeng  
         max_tokens: 250
         variable_size: False
@@ -154,7 +154,7 @@ dataset:
         panel_size_min: 250
         panel_size_max: 250
         panel_overlap: False
-    spatial_custom2:  
+    spatial_custom_zhuang:  
         split_key: val_spatial_zhuang
         max_tokens: 500
         variable_size: False
@@ -163,7 +163,7 @@ dataset:
         panel_size_min: 500
         panel_size_max: 500
         panel_overlap: False
-    spatial_custom:  
+    spatial_custom_ISD:  
         split_key: val_spatial_ISD 
         max_tokens: 250
         variable_size: False
