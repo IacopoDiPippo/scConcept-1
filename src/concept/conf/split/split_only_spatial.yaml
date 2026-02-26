@@ -1,4 +1,4 @@
-train: null
+train_transcriptomics: null
 train_ISD:
   - ISD-1_val.h5ad
 train_Zeng:

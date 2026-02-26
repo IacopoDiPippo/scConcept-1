@@ -29,34 +29,25 @@ dataset:
       max_tokens: 1000
       variable_size: False
       panel_overlap: False
-      panel_selection: mixed
-      panel_selection_mixed_prob: 1
-      panel_filter_regex: ".*"
+      panel_selection: random
       panel_size_min: 250
       panel_size_max: 325
-      panel_max_drop_rate: 0.1
     spatial_Zeng:
       split_key: train_Zeng
       max_tokens: 1000
       variable_size: False
       panel_overlap: False
-      panel_selection: mixed
-      panel_selection_mixed_prob: 1
-      panel_filter_regex: ".*"
+      panel_selection: random
       panel_size_min: 250
       panel_size_max: 325
-      panel_max_drop_rate: 0.1
     spatial_Zhuang:
       split_key: train_Zhuang
       max_tokens: 1000
       variable_size: False
       panel_overlap: False
-      panel_selection: mixed
-      panel_selection_mixed_prob: 1
-      panel_filter_regex: ".*"
+      panel_selection: random
       panel_size_min: 450
       panel_size_max: 600
-      panel_max_drop_rate: 0.1
 
   val:
     same:
