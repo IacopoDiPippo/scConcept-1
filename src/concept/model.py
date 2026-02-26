@@ -508,6 +508,8 @@ class ContrastiveModel(BaseTransformerModel):
     
 
     def training_step(self, batch, batch_idx):
+        if isinstance(batch, (list, tuple)):
+            batch = batch[0]
         # --- timing: start step ---
         t_total_start = time.perf_counter()
 
