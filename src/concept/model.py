@@ -136,8 +136,11 @@ class BaseTransformerModel(L.LightningModule):
             "Subclasses must implement _step method.")
 
     def training_step(self, batch, batch_idx):
-        loss = self._step(batch)
-        self.log("train/loss", loss, sync_dist=False)
+        # Fix per CombinedLoader - estrai il batch dalla lista/tuple
+        if isinstance(batch, (list, tuple)):
+            batch = batch[0]
+        
+        loss = self._step(batch, batch_idx, stage='train', log_prefix='train')
         return loss
 
     def validation_step(self, batch, batch_idx):

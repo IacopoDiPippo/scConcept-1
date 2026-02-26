@@ -8,8 +8,9 @@ train_Zhuang:
 val_transcriptomics:
   - abc_atlas_val.h5ad
   - abc_atlas_2_val.h5ad
-val_spatial:
+val_spatial_zeng:
   - Zeng_val.h5ad
-  #- ISD-1_val.h5ad
-val_spatial2:
+val_spatial_zhuang:
   - Zhuang-ABCA-1_val.h5ad
+val_spatial_ISD:
+  - ISD-1_train.h5ad
