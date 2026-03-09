@@ -310,7 +310,7 @@ class ContrastiveModel(BaseTransformerModel):
                          cls_token_id,
                          debug=debug
                          )
-
+        self.train_loader_names = train_loader_names
         self.mlm_loss_weight = config['mlm_loss_weight']
         self.cont_loss_weight = config['cont_loss_weight']
         self.contrastive_loss = config['contrastive_loss']
