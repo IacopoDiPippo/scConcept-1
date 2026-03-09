@@ -298,6 +298,7 @@ class ContrastiveModel(BaseTransformerModel):
         val_loader_names = [],
         label_keys_to_monitor: List[str] = [],
         batch_keys_to_monitor: List[str] = [],
+        train_loader_names = [], 
         debug: bool = False,
     ):
         
@@ -508,9 +509,6 @@ class ContrastiveModel(BaseTransformerModel):
     
 
     def training_step(self, batch, batch_idx):
-        if isinstance(batch, (list, tuple)):
-            batch = batch[0]
-        # --- timing: start step ---
         t_total_start = time.perf_counter()
 
         if self.data_loading_speed_sanity_check:
@@ -518,31 +516,33 @@ class ContrastiveModel(BaseTransformerModel):
             self.log_metrics("train/loss", loss)
             return loss
 
-        if batch_idx % self.log_every_n_steps == 0:
-            sample_stats = self._get_sample_stats(batch)
-            self.sample_stats['train'].append(sample_stats)
+        # CombinedLoader restituisce lista di batch da diversi dataloaders
+        if isinstance(batch, (list, tuple)):
+            total_loss = 0.0
+            valid_batches = 0
+            for i, b in enumerate(batch):
+                if b is not None:
+                    loader_name = self.train_loader_names[i] if i < len(self.train_loader_names) else f'loader_{i}'
+                    if batch_idx % self.log_every_n_steps == 0 and i == 0:
+                        sample_stats = self._get_sample_stats(b)
+                        self.sample_stats['train'].append(sample_stats)
+                    loss = self._step(b, batch_idx, stage='train', log_prefix=f'train/{loader_name}')
+                    total_loss += loss
+                    valid_batches += 1
+            loss = total_loss / valid_batches if valid_batches > 0 else torch.tensor(0.0, device=self.device, requires_grad=True)
+        else:
+            # Singolo dataloader
+            if batch_idx % self.log_every_n_steps == 0:
+                sample_stats = self._get_sample_stats(batch)
+                self.sample_stats['train'].append(sample_stats)
+            loss = self._step(batch, batch_idx, stage='train', log_prefix='train')
 
-        # --- timing: compute part (_step) ---
-        t_compute_start = time.perf_counter()
-        loss = self._step(batch, batch_idx, stage='train', log_prefix='train')
-
-        # sync GPU per misurare davvero il tempo compute
         if torch.cuda.is_available():
             torch.cuda.synchronize()
-        compute_time = time.perf_counter() - t_compute_start
 
-        if self.debug and 'panel_1' in batch and 'panel_2' in batch and batch_idx % self.log_every_n_steps == 0:
-            self._validate_panels(batch['panel_1'], batch['panel_2'])
-
-        total_time = time.perf_counter() - t_total_start
-        data_overhead_time = total_time - compute_time
-
-        # stampa solo i primi step per non spammare
         if batch_idx < 30:
-            self.print(
-                f"[timing] step={batch_idx} total={total_time:.3f}s "
-                f"compute={compute_time:.3f}s approx_data+overhead={data_overhead_time:.3f}s"
-            )
+            total_time = time.perf_counter() - t_total_start
+            self.print(f"[timing] step={batch_idx} total={total_time:.3f}s")
 
         return loss
 

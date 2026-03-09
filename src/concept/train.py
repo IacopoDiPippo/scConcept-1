@@ -160,6 +160,7 @@ def train(cfg: DictConfig):
         'label_keys_to_monitor': cfg.datamodule.label_keys_to_monitor,
         'batch_keys_to_monitor': cfg.datamodule.batch_keys_to_monitor,
         'precomp_embs_key': cfg.datamodule.precomp_embs_key,
+        'train_loader_names': train_loader_names,
     }
     model = ContrastiveModel(**model_args)
 
