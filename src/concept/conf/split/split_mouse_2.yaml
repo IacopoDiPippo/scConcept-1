@@ -1,4 +1,4 @@
-train_transcriptomic:
+train_transcriptomics:
   - abc_atlas_train.h5ad
   - abc_atlas_2_train.h5ad
 val_transcriptomics:
