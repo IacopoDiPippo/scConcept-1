@@ -178,7 +178,19 @@ def get_hydra_overrides(checkpoint_path: str) -> List[str]:
         overrides_str = f.read().strip()
     
     overrides = overrides_str.split()
-    filtered = [o for o in overrides if not o.startswith('wandb.') and not o.startswith('+initialize_2.')]
+    
+    # Filter out overrides not needed for inference
+    filtered = []
+    skip_prefixes = (
+        'wandb.',
+        '+initialize_2.',
+        'datamodule.dataloader.',  # batch_size etc not needed for inference
+        'datamodule.probabilistic_panel_sampling',  # not needed for inference
+    )
+    for o in overrides:
+        if any(o.startswith(prefix) for prefix in skip_prefixes):
+            continue
+        filtered.append(o)
     
     print(f"📋 Loaded overrides from {overrides_file}:")
     for o in filtered:
@@ -431,6 +443,7 @@ def run_pipeline(
     subsample: Optional[int] = None,
     mean: bool = False,
     separation: bool = False,
+    pca_components: Optional[int] = None,
 ):
     """Run the full pipeline."""
     import anndata as ad
@@ -629,6 +642,22 @@ def run_pipeline(
         print("=" * 60)
         
         use_rep = "concept_mean_embedding" if mean else "concept_cls_embedding"
+        
+        # Apply PCA if requested
+        if pca_components:
+            print(f"🔄 Applying PCA with {pca_components} components...")
+            from sklearn.decomposition import PCA
+            
+            embeddings = combined.obsm[use_rep]
+            pca = PCA(n_components=pca_components, random_state=0)
+            combined.obsm["X_pca"] = pca.fit_transform(embeddings)
+            
+            explained_var = pca.explained_variance_ratio_.sum() * 100
+            print(f"   PCA: {embeddings.shape[1]} dims -> {pca_components} dims ({explained_var:.1f}% variance)")
+            
+            use_rep = "X_pca"
+            mean_name = f"{mean_name}_pca{pca_components}"
+        
         sc.pp.neighbors(combined, use_rep=use_rep, n_neighbors=30)
     
     # Step 5: UMAP
@@ -804,6 +833,8 @@ def main():
     parser.add_argument("--mean", action="store_true", help="Use mean embedding instead of CLS")
     parser.add_argument("--separation", action="store_true", 
                         help="Create separate UMAPs for each cell type, colored by dataset")
+    parser.add_argument("--pca", type=int, default=None,
+                        help="Apply PCA before UMAP (e.g., --pca 32 for 32 components)")
     
     args = parser.parse_args()
     
@@ -822,6 +853,7 @@ def main():
         subsample=args.subsample,
         mean=args.mean,
         separation=args.separation,
+        pca_components=args.pca,
     )
 
 
