@@ -24,7 +24,30 @@ dataset:
       panel_size_max: 5000
       panel_max_drop_rate: 0.5
       feature_max_drop_rate: null
-
+    spatial_ISD:
+      split_key: train_ISD
+      max_tokens: 1000
+      variable_size: False
+      panel_overlap: False
+      panel_selection: random
+      panel_size_min: 250
+      panel_size_max: 325
+    spatial_Zeng:
+      split_key: train_Zeng
+      max_tokens: 1000
+      variable_size: False
+      panel_overlap: False
+      panel_selection: random
+      panel_size_min: 250
+      panel_size_max: 325
+    spatial_Zhuang:
+      split_key: train_Zhuang
+      max_tokens: 1000
+      variable_size: False
+      panel_overlap: False
+      panel_selection: random
+      panel_size_min: 450
+      panel_size_max: 600
 
   val:
     same:
@@ -51,7 +74,30 @@ dataset:
       panel_selection: random
       panel_size_min: 800
       panel_size_max: 800
-
+    within_ZengGenePanel:
+      split_key: val_transcriptomics
+      max_tokens: 500
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "Zeng_Panel"
+      panel_size_min: 500
+      panel_size_max: 500
+    within_ZhuangGenePanel:
+      split_key: val_transcriptomics
+      max_tokens: 1120
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "Zhuang_ABCA1"
+      panel_size_min: 1120
+      panel_size_max: 1120
+    within_ISDGenePanel:
+      split_key: val_transcriptomics
+      max_tokens: 500
+      variable_size: False
+      panel_selection: preselected
+      panel_filter_regex: "ISD"
+      panel_size_min: 500
+      panel_size_max: 500
 
     # --- superselected: pairwise panel confrontations ---
     # Each loader uses panel_selection: superselected and names the two panels explicitly.
@@ -129,6 +175,30 @@ dataloader:
         pin_memory: True
         drop_last: True
         num_samples: null
+    spatial_ISD:
+        within_group_sampling: "dataset"
+        batch_size: 256
+        shuffle: True
+        num_workers: 4
+        pin_memory: True
+        drop_last: True
+        num_samples: null
+    spatial_Zeng:
+        within_group_sampling: "dataset"
+        batch_size: 256
+        shuffle: True
+        num_workers: 4
+        pin_memory: True
+        drop_last: True
+        num_samples: null
+    spatial_Zhuang:
+        within_group_sampling: "dataset"
+        batch_size: 256
+        shuffle: True
+        num_workers: 4
+        pin_memory: True
+        drop_last: True
+        num_samples: null
 
   val:
     same:
@@ -155,7 +225,30 @@ dataloader:
       pin_memory: False
       drop_last: True
       num_samples: 50000
-    
+    within_ZengGenePanel:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 50000
+    within_ZhuangGenePanel:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 50000
+    within_ISDGenePanel:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 50000
 
     # --- dataloaders for superselected pairwise loaders ---
     super_ISD_vs_Zeng:
