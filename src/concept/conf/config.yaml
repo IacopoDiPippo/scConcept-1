@@ -21,6 +21,7 @@ initialize_2:
   run_id: kdp2po4o
   checkpoint: epochs/last.ckpt
   do_validate_first: False
+  session: 2
 
 profiler:
   enabled: False # Use profiler only for debugging

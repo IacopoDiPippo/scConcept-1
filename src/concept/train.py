@@ -178,6 +178,9 @@ def train(cfg: DictConfig):
         # size
         size_tag = "big" if cfg.model.dim_model == 512 else "small"
 
+        if size_tag == "small":
+            size_tag ="small2" if cfg.model.projection_dim != 32 else "small"
+
         # sampling
         sampling_tag = (
             "weighted"
@@ -190,7 +193,7 @@ def train(cfg: DictConfig):
         ckpt_path = os.path.join(
             cfg.PATH.CHECKPOINT_ROOT,
             split_dir,
-            "session_2",
+            f"session_{cfg.initialize_2.session}",
             run_dir,
             RESUME_CKPT,
         )
