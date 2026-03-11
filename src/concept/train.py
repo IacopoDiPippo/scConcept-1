@@ -179,7 +179,7 @@ def train(cfg: DictConfig):
         size_tag = "big" if cfg.model.dim_model == 512 else "small"
 
         if size_tag == "small":
-            size_tag ="small2" if cfg.model.projection_dim != 32 else "small"
+            size_tag ="small2" if cfg.model.projection_dim == 32 else "small"
 
         # sampling
         sampling_tag = (
