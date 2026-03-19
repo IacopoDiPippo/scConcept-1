@@ -13,7 +13,7 @@ from sklearn.decomposition import PCA
 import re
 from sklearn.model_selection import train_test_split
 
-gene_name_to_id = pd.read_pickle("/lustre/groups/ml01/projects/contrastive_transformer/data/cxg_raw_2023-12-15/gene_name_to_id.pkl")
+gene_name_to_id = pd.read_pickle("//p/scratch/cjinm16/dipippo1/scConcept/token_mapping/pc_gene_token_mapping.pkl")
 gene_id_to_name = {v: k for k, v in gene_name_to_id.items()}
 
 def is_raw_count(X):

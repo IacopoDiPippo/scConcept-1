@@ -50,37 +50,7 @@ pip install git+https://github.com/theislab/lamin_dataloader.git
 
 ## How to use
 
-scConcept provides a simple API to load pre-trained model, adapt and extract embeddings from scRNA-seq data. Here's a basic example:
 
-```python
-from concept.scConcept import scConcept
-import scanpy as sc
-
-# Load your single-cell data
-adata = sc.read_h5ad("your_data.h5ad")
-
-# Initialize scConcept and load a pretrained model
-concept = scConcept(cache_dir='./cache/')
-concept.load_config_and_model(model_name='Corpus-30M')
-
-# Extract embeddings
-# --> adata.var['gene_id']: ENSGXXXXXXXXXXX
-result = concept.extract_embeddings(adata=adata, gene_id_column='gene_id')
-
-# Use embeddings for downstream analysis
-adata.obsm['X_scConcept'] = result['cls_cell_emb']
-```
-
-For more detailed examples and tutorials, see the [notebook examples](docs/notebooks/embedding_extraction.ipynb).
-
-<!-- ## Release notes
-
-See the [changelog][]. -->
-
-<!-- ## Contact
-
-For questions and help requests, you can reach out in the [scverse discourse][].
-If you found a bug, please use the [issue tracker][]. -->
 
 ## Citation
 

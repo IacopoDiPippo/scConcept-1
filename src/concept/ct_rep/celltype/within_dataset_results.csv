@@ -1,0 +1,2 @@
+config,tissue,dataset_ref,filename_ref,dataset_query,filename_query,classifier,method,emb_path,accuracy,f1_score_weighted,f1_score_macro
+[atlas_train]_[abc_atlas_train.h5ad]_[None]_[None]_[class]_[atlas]_[abc_atlas_val.h5ad]_[None]_[None]_[class]_[brain],brain,abc_atlas_train.h5ad,abc_atlas_train.h5ad,abc_atlas_val.h5ad,abc_atlas_val.h5ad,knn,scConcept,small_weighted__hgld4ax1_last,0.9252333333333334,0.9219347957114978,0.7536472008398324
