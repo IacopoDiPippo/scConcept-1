@@ -167,7 +167,7 @@ dmypy.json
 
 .vscode
 lightning_logs/
-*.sbatch
+#*.sbatch
 figures/
 untracked/
 temp/
