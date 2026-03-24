@@ -1,0 +1,209 @@
+name: DataModule
+columns: ["subclass", "donor_label"] # include all obs keys to retrieve from dataloader
+label_keys_to_monitor: ["subclass"]
+batch_keys_to_monitor: ["donor_label"]
+normalization: raw
+gene_sampling_strategy: random-nonzero
+model_speed_sanity_check: False
+precomp_embs_key: null
+finetune_panels: False
+finetune_selection_mixed_prob: 0.25
+probabilistic_panel_sampling: False
+probabilistic_panel_csv: /p/scratch/cjinm16/dipippo1/projects/scConcept-1/Panels/outputs/score_panels/combined_panel_sorted_max.csv
+dataset:
+  train: 
+    transcriptomics:
+      split_key: train_transcriptomics
+      max_tokens: 1000
+      variable_size: False
+      panel_overlap: False
+      panel_selection: mixed
+      panel_selection_mixed_prob: 0.25
+      panel_filter_regex: ".*"
+      panel_size_min: 500
+      panel_size_max: 5000
+      panel_max_drop_rate: 0.5
+      feature_max_drop_rate: null
+
+
+  val:
+    same:
+      split_key: val_transcriptomics
+      max_tokens: ${datamodule.dataset.train.transcriptomics.max_tokens}
+      variable_size: ${datamodule.dataset.train.transcriptomics.variable_size}
+      panel_overlap: ${datamodule.dataset.train.transcriptomics.panel_overlap}
+      panel_selection: ${datamodule.dataset.train.transcriptomics.panel_selection}
+      panel_selection_mixed_prob: ${datamodule.dataset.train.transcriptomics.panel_selection_mixed_prob}
+      panel_filter_regex: ${datamodule.dataset.train.transcriptomics.panel_filter_regex}
+      panel_size_min: ${datamodule.dataset.train.transcriptomics.panel_size_min}
+      panel_size_max: ${datamodule.dataset.train.transcriptomics.panel_size_max}
+    within_P400_B256:
+      split_key: val_transcriptomics
+      max_tokens: 400
+      variable_size: False
+      panel_selection: random
+      panel_size_min: 400
+      panel_size_max: 400
+    within_P800_B256:
+      split_key: val_transcriptomics
+      max_tokens: 800
+      variable_size: False
+      panel_selection: random
+      panel_size_min: 800
+      panel_size_max: 800
+
+
+    # --- superselected: pairwise panel confrontations ---
+    # Each loader uses panel_selection: superselected and names the two panels explicitly.
+    # Both panels are fixed biology panels; overlap between them is allowed.
+    super_ISD_vs_Zeng:
+      split_key: val_transcriptomics
+      max_tokens: 1000
+      variable_size: False
+      panel_selection: superselected
+      panel_filter_regex: ".*"          # load all panels so both can be resolved
+      superselected_panel_1: "ISD"      # regex matched against panel file names
+      superselected_panel_2: "Zeng_Panel"
+      panel_size_min: 500
+      panel_size_max: 1000
+      panel_overlap: True               # fixed panels may share genes — that's expected
+    super_ISD_vs_Zhuang:
+      split_key: val_transcriptomics
+      max_tokens: 1500
+      variable_size: False
+      panel_selection: superselected
+      panel_filter_regex: ".*"
+      superselected_panel_1: "ISD"
+      superselected_panel_2: "Zhuang_ABCA1"
+      panel_size_min: 500
+      panel_size_max: 1500
+      panel_overlap: True
+    super_Zeng_vs_Zhuang:
+      split_key: val_transcriptomics
+      max_tokens: 1500
+      variable_size: False
+      panel_selection: superselected
+      panel_filter_regex: ".*"
+      superselected_panel_1: "Zeng_Panel"
+      superselected_panel_2: "Zhuang_ABCA1"
+      panel_size_min: 500
+      panel_size_max: 1500
+      panel_overlap: True
+
+    spatial_custom_zeng:  
+        split_key: val_spatial_zeng  
+        max_tokens: 250
+        variable_size: False
+        panel_selection: random
+        panel_filter_regex: "SpatialOmics_Panel"
+        panel_size_min: 250
+        panel_size_max: 250
+        panel_overlap: False
+    spatial_custom_zhuang:  
+        split_key: val_spatial_zhuang
+        max_tokens: 500
+        variable_size: False
+        panel_selection: random
+        panel_filter_regex: "SpatialOmics_Panel"
+        panel_size_min: 500
+        panel_size_max: 500
+        panel_overlap: False
+    spatial_custom_ISD:  
+        split_key: val_spatial_ISD 
+        max_tokens: 250
+        variable_size: False
+        panel_selection: random
+        panel_filter_regex: "SpatialOmics_Panel"
+        panel_size_min: 250
+        panel_size_max: 250
+        panel_overlap: False
+
+  
+dataloader:
+  train:
+    transcriptomics:
+        within_group_sampling: "dataset"
+        batch_size: 256
+        shuffle: True
+        num_workers: 8
+        pin_memory: True
+        drop_last: True
+        num_samples: null
+
+  val:
+    same:
+      within_group_sampling: ${datamodule.dataloader.train.transcriptomics.within_group_sampling}
+      batch_size: ${datamodule.dataloader.train.transcriptomics.batch_size}
+      shuffle: ${datamodule.dataloader.train.transcriptomics.shuffle}
+      num_workers: 2
+      pin_memory: False
+      drop_last: ${datamodule.dataloader.train.transcriptomics.drop_last}
+      num_samples: 100000
+    within_P400_B256:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 50000
+    within_P800_B256:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 50000
+    
+
+    # --- dataloaders for superselected pairwise loaders ---
+    super_ISD_vs_Zeng:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 50000
+    super_ISD_vs_Zhuang:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 50000
+    super_Zeng_vs_Zhuang:
+      within_group_sampling: "dataset"
+      batch_size: 256
+      shuffle: True
+      num_workers: 2
+      pin_memory: False
+      drop_last: True
+      num_samples: 50000
+
+    spatial_custom_zeng:
+        within_group_sampling: "dataset"
+        batch_size: 128
+        shuffle: True
+        num_workers: 2
+        pin_memory: False
+        drop_last: True
+        num_samples: 50000
+    spatial_custom_zhuang:
+        within_group_sampling: "dataset"
+        batch_size: 128
+        shuffle: True
+        num_workers: 2
+        pin_memory: False
+        drop_last: True
+        num_samples: 50000
+    spatial_custom_ISD:
+        within_group_sampling: "dataset"
+        batch_size: 128
+        shuffle: True
+        num_workers: 2
+        pin_memory: False
+        drop_last: True
+        num_samples: 50000
