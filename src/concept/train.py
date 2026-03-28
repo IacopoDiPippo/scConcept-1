@@ -171,8 +171,10 @@ def train(cfg: DictConfig):
     ckpt_path = None
     if DO_RESUME:
         if cfg.initialize_2.base:
+            run_dir = f"{RESUME_RUN_ID}"
             ckpt_path = os.path.join(
             cfg.PATH.CHECKPOINT_ROOT,
+            run_dir,
             RESUME_CKPT,
         )
 
