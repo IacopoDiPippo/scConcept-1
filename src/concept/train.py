@@ -178,8 +178,6 @@ def train(cfg: DictConfig):
 
             print(
                 "\n>>> RESUMING FROM CHECKPOINT\n"
-                f">>> split_dir: {split_dir}\n"
-                f">>> run_dir: {run_dir}\n"
                 f">>> checkpoint: {ckpt_path}\n"
             )
 
