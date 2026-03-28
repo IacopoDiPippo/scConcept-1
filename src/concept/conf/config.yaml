@@ -22,6 +22,7 @@ initialize_2:
   checkpoint: epochs/last.ckpt
   do_validate_first: False
   session: 2
+  base: True
 
 profiler:
   enabled: False # Use profiler only for debugging

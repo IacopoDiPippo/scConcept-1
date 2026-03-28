@@ -170,42 +170,58 @@ def train(cfg: DictConfig):
     print(f"DEBUG cfg.split = '{cfg.split}'", flush=True)
     ckpt_path = None
     if DO_RESUME:
-        if "split_mouse" == cfg.initialize_2.split:
-            split_dir = "split_mouse"
-        else:
-            split_dir = "split_mouse_2"
-
-        # size
-        size_tag = "big" if cfg.model.dim_model == 512 else "small"
-
-        if size_tag == "small":
-            size_tag ="small2" if cfg.model.projection_dim == 32 else "small"
-
-        # sampling
-        sampling_tag = (
-            "weighted"
-            if cfg.datamodule.probabilistic_panel_sampling
-            else "uniform"
-        )
-
-        run_dir = f"{size_tag}_{sampling_tag}__{RESUME_RUN_ID}"
-
-        ckpt_path = os.path.join(
+        if cfg.initialize_2.base:
+            ckpt_path = os.path.join(
             cfg.PATH.CHECKPOINT_ROOT,
-            split_dir,
-            f"session_{cfg.initialize_2.session}",
-            run_dir,
             RESUME_CKPT,
         )
 
-        print(
-            "\n>>> RESUMING FROM CHECKPOINT\n"
-            f">>> split_dir: {split_dir}\n"
-            f">>> run_dir: {run_dir}\n"
-            f">>> checkpoint: {ckpt_path}\n"
-        )
+            print(
+                "\n>>> RESUMING FROM CHECKPOINT\n"
+                f">>> split_dir: {split_dir}\n"
+                f">>> run_dir: {run_dir}\n"
+                f">>> checkpoint: {ckpt_path}\n"
+            )
 
-        assert os.path.isfile(ckpt_path), f"Checkpoint not found: {ckpt_path}"
+            assert os.path.isfile(ckpt_path), f"Checkpoint not found: {ckpt_path}"
+
+        else:
+            if "split_mouse" == cfg.initialize_2.split:
+                split_dir = "split_mouse"
+            else:
+                split_dir = "split_mouse_2"
+
+            # size
+            size_tag = "big" if cfg.model.dim_model == 512 else "small"
+
+            if size_tag == "small":
+                size_tag ="small2" if cfg.model.projection_dim == 32 else "small"
+
+            # sampling
+            sampling_tag = (
+                "weighted"
+                if cfg.datamodule.probabilistic_panel_sampling
+                else "uniform"
+            )
+
+            run_dir = f"{size_tag}_{sampling_tag}__{RESUME_RUN_ID}"
+
+            ckpt_path = os.path.join(
+                cfg.PATH.CHECKPOINT_ROOT,
+                split_dir,
+                f"session_{cfg.initialize_2.session}",
+                run_dir,
+                RESUME_CKPT,
+            )
+
+            print(
+                "\n>>> RESUMING FROM CHECKPOINT\n"
+                f">>> split_dir: {split_dir}\n"
+                f">>> run_dir: {run_dir}\n"
+                f">>> checkpoint: {ckpt_path}\n"
+            )
+
+            assert os.path.isfile(ckpt_path), f"Checkpoint not found: {ckpt_path}"
 
     if DO_VALIDATE_BEFORE_FIT:
         print(">>> VALIDATING CHECKPOINT BEFORE TRAINING")
