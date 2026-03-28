@@ -18,7 +18,7 @@ from functools import partial
 from .modules.bert_padding import unpad_input, pad_input
 from .modules.flash_attention_layer import FlashTransformerEncoderLayer
 from .modules.transformer import TransformerEncoder
-
+import time
 
 # set random seed
 random.seed(42)
@@ -136,11 +136,17 @@ class BaseTransformerModel(L.LightningModule):
             "Subclasses must implement _step method.")
 
     def training_step(self, batch, batch_idx):
+        collate_time = batch.pop('_collate_time', None)
+        if collate_time is not None:
+            self.log('timing/collate_s', collate_time, on_step=True, on_epoch=False)
         # Fix per CombinedLoader - estrai il batch dalla lista/tuple
         if isinstance(batch, (list, tuple)):
             batch = batch[0]
         
         loss = self._step(batch, batch_idx, stage='train', log_prefix='train')
+        elapsed = time.time() - t0
+        self.log('timing/training_step_s', elapsed, on_step=True, on_epoch=False)
+    
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -509,6 +515,11 @@ class ContrastiveModel(BaseTransformerModel):
     
 
     def training_step(self, batch, batch_idx):
+        collate_time = batch.pop('_collate_time', None)
+        if collate_time is not None:
+            self.log('timing/collate_s', collate_time, on_step=True, on_epoch=False)
+        
+        t0 = time.time()
         t_total_start = time.perf_counter()
 
         if self.data_loading_speed_sanity_check:
@@ -540,9 +551,13 @@ class ContrastiveModel(BaseTransformerModel):
         if torch.cuda.is_available():
             torch.cuda.synchronize()
 
-        if batch_idx < 30:
+        if batch_idx < 3000:
             total_time = time.perf_counter() - t_total_start
             self.print(f"[timing] step={batch_idx} total={total_time:.3f}s")
+
+        elapsed = time.time() - t0
+        self.log('timing/training_step_s', elapsed, on_step=True, on_epoch=False)
+    
 
         return loss
 

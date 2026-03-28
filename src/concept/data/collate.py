@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 import random
 from pathlib import Path
 import re
+import time
 
 
 class Collate(BaseCollate):
@@ -109,6 +110,7 @@ class Collate(BaseCollate):
         """
 
         mask = np.isin(self.probabilistic_tokens, available_tokens)
+
 
         tokens = self.probabilistic_tokens[mask]
         probs = self.probabilistic_probs[mask]
@@ -223,6 +225,8 @@ class Collate(BaseCollate):
         return panel, self.panel_names[panel_idx]
     
     def __call__(self, batch):
+        t0 = time.time()
+
         n_tokens = len(batch[0]['tokens'])
         permute = self.rng.permutation(n_tokens)
         batch_permute = [{'tokens': item['tokens'][permute], 
@@ -357,6 +361,7 @@ class Collate(BaseCollate):
             tokens_2 = [item['tokens'].astype(np.int64) for item in batch_2]
             values_2 = [item['values'].astype(np.float32) for item in batch_2]
             
+            elapsed = time.time() - t0
             return {'tokens_1': default_collate(tokens_1),
                     'values_1': default_collate(values_1),
                     'tokens_2': default_collate(tokens_2),
@@ -365,6 +370,7 @@ class Collate(BaseCollate):
                     'panel_2' : default_collate(panel_2),
                     'panel_name_1': panel_name_1,
                     'panel_name_2': panel_name_2,
+                    '_collate_time': elapsed,
                     **{key: default_collate([item[key] for item in batch]) for key in batch[0].keys() if key not in ['tokens', 'values']}
             }
 
@@ -379,7 +385,9 @@ class Collate(BaseCollate):
             
             tokens, values = [item['tokens'].astype(np.int64) for item in batch_], [item['values'].astype(np.float32) for item in batch_]
         
+            elapsed = time.time() - t0
             return {'tokens': default_collate(tokens),
                     'values': default_collate(values),
+                    '_collate_time': elapsed,
                     **{key: default_collate([item[key] for item in batch]) for key in batch[0].keys() if key not in ['tokens', 'values']}
             }
