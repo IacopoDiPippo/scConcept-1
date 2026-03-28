@@ -20,7 +20,7 @@ def get_profiler(checkpoint_path: str):
         profile_memory=False,
         with_flops=False,
 
-        schedule=schedule(skip_first=0, wait=1, warmup=1, active=2, repeat=1),
+        schedule=schedule(skip_first=0, wait=1, warmup=1, active=2000, repeat=1),
         #schedule = schedule(skip_first=100, wait=10, warmup=10, active=20, repeat=1),
         row_limit = -1,
         #sort_by_key="cuda_time",
