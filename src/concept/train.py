@@ -143,7 +143,7 @@ def train(cfg: DictConfig):
 
     
     trainer = L.Trainer(**trainer_kwargs, 
-                        strategy=DDPStrategy(find_unused_parameters=True),
+                        strategy=DDPStrategy(find_unused_parameters=False),
                         precision='bf16-mixed', 
                         use_distributed_sampler=False,
                         max_epochs = 30000
