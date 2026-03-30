@@ -1,0 +1,7 @@
+train_transcriptomics:
+  - abc_atlas_train.h5ad
+  - abc_atlas_2_train.h5ad
+train_Zeng:
+  - Zeng_train.h5ad
+train_Zhuang:
+  - Zhuang-ABCA-1_train.h5ad
