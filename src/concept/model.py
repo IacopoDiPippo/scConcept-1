@@ -136,9 +136,7 @@ class BaseTransformerModel(L.LightningModule):
             "Subclasses must implement _step method.")
 
     def training_step(self, batch, batch_idx):
-        collate_time = batch.pop('_collate_time', None)
-        if collate_time is not None:
-            self.log('timing/collate_s', collate_time, on_step=True, on_epoch=False)
+       
         # Fix per CombinedLoader - estrai il batch dalla lista/tuple
         if isinstance(batch, (list, tuple)):
             batch = batch[0]
@@ -515,9 +513,6 @@ class ContrastiveModel(BaseTransformerModel):
     
 
     def training_step(self, batch, batch_idx):
-        collate_time = batch.pop('_collate_time', None)
-        if collate_time is not None:
-            self.log('timing/collate_s', collate_time, on_step=True, on_epoch=False)
         
         t0 = time.time()
         t_total_start = time.perf_counter()

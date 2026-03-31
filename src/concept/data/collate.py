@@ -370,7 +370,6 @@ class Collate(BaseCollate):
                     'panel_2' : default_collate(panel_2),
                     'panel_name_1': panel_name_1,
                     'panel_name_2': panel_name_2,
-                    '_collate_time': elapsed,
                     **{key: default_collate([item[key] for item in batch]) for key in batch[0].keys() if key not in ['tokens', 'values']}
             }
 
@@ -388,6 +387,5 @@ class Collate(BaseCollate):
             elapsed = time.time() - t0
             return {'tokens': default_collate(tokens),
                     'values': default_collate(values),
-                    '_collate_time': elapsed,
                     **{key: default_collate([item[key] for item in batch]) for key in batch[0].keys() if key not in ['tokens', 'values']}
             }
