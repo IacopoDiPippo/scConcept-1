@@ -142,8 +142,7 @@ class BaseTransformerModel(L.LightningModule):
             batch = batch[0]
         
         loss = self._step(batch, batch_idx, stage='train', log_prefix='train')
-        elapsed = time.time() - t0
-        self.log('timing/training_step_s', elapsed, on_step=True, on_epoch=False)
+
     
         return loss
 
