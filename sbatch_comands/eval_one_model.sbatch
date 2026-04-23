@@ -14,7 +14,13 @@
 set -euo pipefail
 #CHECKPOINT=$SCRATCH/dipippo1/scConcept/model_checkpoints/split_mouse_2/session_2/small_weighted__hgld4ax1/epochs/last.ckpt
 #CHECKPOINT=$SCRATCH/dipippo1/scConcept/model_checkpoints/split_mouse/session_2/big_weighted__uv28i4o3/epochs/last.ckpt
-CHECKPOINT=$SCRATCH/dipippo1/scConcept/model_checkpoints/finetune/3de8fprx/epochs/last.ckpt
+#CHECKPOINT=$SCRATCH/dipippo1/scConcept/model_checkpoints/important/finetune/3de8fprx/epochs/last.ckpt
+#CHECKPOINT=$SCRATCH/dipippo1/scConcept/model_checkpoints/mhvog2y2/epochs/last.ckpt
+#CHECKPOINT=$SCRATCH/dipippo1/scConcept/model_checkpoints/yga0ei93/epochs/last.ckpt
+CHECKPOINT=$SCRATCH/dipippo1/scConcept/model_checkpoints/relthf0o/epochs/epoch=57.ckpt
+#CHECKPOINT=$SCRATCH/dipippo1/scConcept/model_checkpoints/important/finetune/2cf8i4ws/epochs/last.ckpt
+
+
 echo "============================================"
 echo "Job ID: $SLURM_JOB_ID"
 echo "Checkpoint: $CHECKPOINT"
@@ -35,13 +41,17 @@ export CUDA_VISIBLE_DEVICES=0
 #  --ilisi dataset \
 #  --subsample 100000 
 
+PATHTODATA=/p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zhuang-ABCA-2.h5ad
+GENE_MAPPING=$SCRATCH/dipippo1/scConcept/token_mapping/pc_gene_token_mapping.pkl
 
+python concept/inference_standalone.py  -c "$CHECKPOINT"   -g "$GENE_MAPPING" -i "$PATHTODATA"   -o /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zhuang-ABCA-2_EMB_relthf0o.h5ad
+
+#python -m concept.add_embeddings -c "$CHECKPOINT" -i "$PATHTODATA" -o /p/project1/hai_fzj_bda/spitzer2/point_transformer/data/raw/Zhuang-ABCA-2_EMB_mhvog2y2.h5ad
 #srun python -m concept.evaluate -c "$CHECKPOINT" -d isd zeng zhuang --umap --pca 32
-srun python -m concept.evaluate --checkpoint $CHECKPOINT --datasets isd zeng zhuang -s 1000000000000 --umap --clisi cell_type --ilisi dataset
+#srun python -m concept.evaluate --checkpoint $CHECKPOINT --datasets isd zeng zhuang -s 1000000000000 --umap --clisi cell_type --ilisi dataset
 #python -m concept.evaluate -c "$CHECKPOINT" -d atlas --atlas-panel all_all -s 50000 --umap
-srun python -m concept.evaluate --checkpoint "$CHECKPOINT"  -d atlas --atlas-panel all --umap
+#srun python -m concept.evaluate --checkpoint "$CHECKPOINT"  -d atlas --atlas-panel all --umap
 #srun python -m concept.evaluate --checkpoint $CHECKPOINT --datasets atlas_train -s 10000000000000
 #srun python -m concept.evaluate --checkpoint $CHECKPOINT --datasets atlas -s 1000000000000
 #srun python -m concept.evaluate --checkpoint $CHECKPOINT --datasets isd zeng zhuang -s 100000000000 --umap
-
 
