@@ -314,7 +314,7 @@ def collate_fn(batch, pad_token: int, max_tokens: int = 2048, gene_sampling_stra
 def load_model_from_checkpoint(checkpoint_path: str, gene_mapping: dict, device: torch.device):
     """Load model from Lightning checkpoint."""
     
-    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+    checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
     
     # Get hyperparameters from checkpoint
     hparams = checkpoint.get('hyper_parameters', {})
